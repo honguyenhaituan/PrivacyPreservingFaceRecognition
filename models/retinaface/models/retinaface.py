@@ -10,7 +10,8 @@ from .net import MobileNetV1 as MobileNetV1
 from .net import FPN as FPN
 from .net import SSH as SSH
 
-from ..utils.loader import load_model
+from ..data import cfg_mnet, cfg_re50
+from ..utils.loader import load_pretrain
 from ..layers.functions.prior_box import PriorBox
 from ..utils.box_utils import decode, decode_landm
 from ..utils.nms.py_cpu_nms import py_cpu_nms
@@ -198,9 +199,16 @@ class RetinaFace(nn.Module):
 
         return dets, landms
 
-
 def retinaface_mnet(pretrained=False, phase='train'):
-    return load_model('mnet', pretrained, phase)
+    model = RetinaFace(cfg_mnet, phase)
+    if pretrained:
+        model = load_pretrain(model, 'mnet')
+
+    return model
 
 def retinaface_rnet(pretrained=False, phase='train'):
-    return load_model('rnet', pretrained, phase)
+    model = RetinaFace(cfg_re50, phase)
+    if pretrained:
+        model = load_pretrain(model, 'rnet')
+
+    return model
