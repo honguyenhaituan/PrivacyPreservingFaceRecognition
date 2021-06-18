@@ -40,20 +40,3 @@ def load_pretrain(model, name='mnet'):
     model.load_state_dict(pretrained_dict, strict=False)
 
     return model
-
-# def load_model(net='mnet'):
-#     if net == 'mnet':
-#         model = RetinaFace(cfg=cfg_mnet, phase='test')
-#     else:
-#         model = RetinaFace(cfg=cfg_re50, phase='test')
-
-#     #device = torch.cuda.current_device()
-#     pretrained_dict = load_url(models_urls[net], map_location=lambda storage, loc: storage)
-#     if "state_dict" in pretrained_dict.keys():
-#         pretrained_dict = remove_prefix(pretrained_dict['state_dict'], 'module.')
-#     else:
-#         pretrained_dict = remove_prefix(pretrained_dict, 'module.')
-#     check_keys(model, pretrained_dict)
-#     model.load_state_dict(pretrained_dict, strict=False)
-#     # print('Finished loading model!')
-#     return model

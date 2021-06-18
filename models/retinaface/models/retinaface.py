@@ -1,6 +1,8 @@
 import torch
+from torch._C import device
 import torch.nn as nn
 import numpy as np
+import torchvision.transforms as transforms
 import torchvision.models.detection.backbone_utils as backbone_utils
 import torchvision.models._utils as _utils
 import torch.nn.functional as F
@@ -111,8 +113,16 @@ class RetinaFace(nn.Module):
             landmarkhead.append(LandmarkHead(inchannels,anchor_num))
         return landmarkhead
 
+    def _transform_input(self, image):
+        out = image * 255
+        out = out[:, [2, 1, 0]]
+        out = transforms.Normalize((104, 117, 123), (1, 1, 1))(out)
+
+        return out
+
     def forward(self,inputs):
-        out = self.body(inputs)
+        out = self._transform_input(inputs)
+        out = self.body(out)
 
         # FPN
         fpn = self.fpn(out)
@@ -133,15 +143,11 @@ class RetinaFace(nn.Module):
             output = (bbox_regressions, F.softmax(classifications, dim=-1), ldm_regressions)
         return output
 
-    def detect_faces(self, img_raw, confidence_threshold=0.9, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
-        img = np.float32(img_raw)
-        im_height, im_width = img.shape[:2]
-        scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
-        img -= (104, 117, 123)
-        img = img.transpose(2, 0, 1)
-        img = torch.from_numpy(img).unsqueeze(0)
-        img = img.to(self.device)
-        scale = scale.to(self.device)
+    def detect_faces(self, img, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
+        device = img.device
+
+        im_height, im_width = img.shape[2:]
+        scale = torch.Tensor([im_width, im_height, im_width, im_height]).to(device)
 
         # tic = time.time()
         with torch.no_grad():
@@ -152,8 +158,7 @@ class RetinaFace(nn.Module):
             # print('net forward time: {:.4f}'.format(time.time() - tic))
 
         priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
-        priors = priorbox.forward()
-        priors = priors.to(self.device)
+        priors = priorbox.forward().to(device)
         prior_data = priors.data
         boxes = decode(loc.data.squeeze(0), prior_data, self.cfg['variance'])
         boxes = boxes * scale / resize
@@ -163,7 +168,7 @@ class RetinaFace(nn.Module):
         scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2]])
-        scale1 = scale1.to(self.device)
+        scale1 = scale1.to(device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
 
@@ -197,7 +202,7 @@ class RetinaFace(nn.Module):
         landms = landms.reshape(-1, 10, )
         # print(landms.shape)
 
-        return dets, landms
+        return dets[:,:-1], dets[:, -1:], landms
 
 def retinaface_mnet(pretrained=False, phase='train'):
     model = RetinaFace(cfg_mnet, phase)
