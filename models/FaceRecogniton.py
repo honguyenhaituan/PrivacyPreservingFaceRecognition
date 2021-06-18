@@ -11,11 +11,10 @@ class FaceRecognition(nn.Module):
 
     def forward(self, image): 
         boxes, confidents, landmarks = self.facedetector.detect_faces(image)
+        boxes = boxes.astype(int)
         faces = []
-        for box in boxes: 
-            box = [round(x) for x in box]
-            #TODO: check type box
-            face = image[:, :, box[0]:box[2], box[1]:box[3]]
+        for box in boxes:
+            face = image[:, :, box[1]:box[3], box[0]:box[2]]
             face = nn.functional.interpolate(face, size=(160, 160))
             faces.append(face.squeeze())
 
