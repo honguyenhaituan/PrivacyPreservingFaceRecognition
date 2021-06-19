@@ -1,11 +1,16 @@
 import torch
 import time
 
-def bboxes2masks(bboxes, shape): 
+def bboxes2masks(bboxes, shape, reduce=0):
+    if reduce > 1 or reduce < 0:
+        raise ValueError("Reduce must be in 0 to 1")
+
     masks = torch.ones(shape, dtype=torch.bool)
     for boxes, mask in zip(bboxes, masks): 
         for box in boxes:
-            mask[:, box[1]:box[3], box[0]:box[2]] = 0
+            height, width = box[3] - box[1], box[2] - box[0]
+            sh, sw = int(height * reduce / 2), int(width * reduce / 2)
+            mask[:, box[1] + sh:box[3] - sh, box[0] + sw:box[2] - sw] = 0
 
     return masks
     

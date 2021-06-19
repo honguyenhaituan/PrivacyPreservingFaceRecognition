@@ -79,19 +79,25 @@ class DetectionLoss(nn.Module):
     def forward(self, predictions, targets):
         self.priorbox = self.priorbox.to(targets.device)
         loss_l, loss_c, loss_landm = self.multiboxloss(predictions, self.priorbox, targets)
-        return  self.cfg['loc_weight'] * loss_l + loss_c + loss_landm
+        return  self.cfg['loc_weight'] * loss_l + loss_c #+ loss_landm
+
+def predict2target(bboxes, landmarks, width, height):
+    target = torch.cat((bboxes[:, :, :-1], landmarks, bboxes[:, :, -1:]), dim=-1)
+    target = target.float()
+    target[:, :, -1] = 1
+    target[:, :, (0, 2)] /= width
+    target[:, :, (1, 3)] /= height
+
+    return target
 
 @torch.no_grad()
 def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, momentum, logger):
     (bboxes, landmarks), names = model(img)
 
     height, width = img.shape[-2:]
-    bboxes_target = bboxes.clone()
-    bboxes_target[:, :, -1] = 1
-    bboxes_target[:, :, 0::2] /= width
-    bboxes_target[:, :, 1::2] /= height
+    bboxes_target = predict2target(bboxes, landmarks, width, height)
 
-    mask = bboxes2masks(bboxes, img.shape)
+    mask = bboxes2masks(bboxes, img.shape, 0.2)
 
     att_img = pixelate_bboxes(img, bboxes)
     att_img.requires_grad = True
