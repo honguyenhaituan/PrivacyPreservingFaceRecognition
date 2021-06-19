@@ -1,4 +1,5 @@
 import torch
+from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -53,6 +54,7 @@ class MultiBoxLoss(nn.Module):
             ground_truth (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
+        device = targets.device
 
         loc_data, conf_data, landm_data = predictions
         priors = priors
@@ -60,21 +62,17 @@ class MultiBoxLoss(nn.Module):
         num_priors = (priors.size(0))
 
         # match priors (default boxes) and ground truth boxes
-        loc_t = torch.Tensor(num, num_priors, 4)
-        landm_t = torch.Tensor(num, num_priors, 10)
-        conf_t = torch.LongTensor(num, num_priors)
+        loc_t = torch.Tensor(num, num_priors, 4).to(device)
+        landm_t = torch.Tensor(num, num_priors, 10).to(device)
+        conf_t = torch.LongTensor(num, num_priors).to(device)
         for idx in range(num):
             truths = targets[idx][:, :4].data
             labels = targets[idx][:, -1].data
             landms = targets[idx][:, 4:14].data
             defaults = priors.data
             match(self.threshold, truths, defaults, self.variance, labels, landms, loc_t, conf_t, landm_t, idx)
-        # if GPU:
-        #     loc_t = loc_t.cuda()
-        #     conf_t = conf_t.cuda()
-        #     landm_t = landm_t.cuda()
 
-        zeros = torch.tensor(0)#.cuda()
+        zeros = torch.tensor(0, device=device)
         # landm Loss (Smooth L1)
         # Shape: [batch,num_priors,10]
         pos1 = conf_t > zeros

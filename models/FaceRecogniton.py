@@ -13,7 +13,7 @@ class FaceRecognition(nn.Module):
         boxes, landmarks = self.facedetector.detect_faces(image)
         if len(boxes) == 0: 
             return None, None
-            
+
         boxes = boxes.astype(int)
         faces = []
         for box in boxes:
@@ -26,7 +26,7 @@ class FaceRecognition(nn.Module):
         out = self.facerecognition(faces)
         _, pred = torch.max(out, 1)
 
-        return torch.from_numpy(boxes).unsqueeze(0), pred
+        return torch.from_numpy(boxes).unsqueeze(0).to(pred.device), pred
 
 def facerecognition_retinaface_facenet(pretrained=False):
     retinaface = retinaface_mnet(pretrained, phase='train')

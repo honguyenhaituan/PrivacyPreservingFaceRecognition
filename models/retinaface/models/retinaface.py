@@ -167,8 +167,7 @@ class RetinaFace(nn.Module):
         landms = decode_landm(landms.data.squeeze(0), prior_data, self.cfg['variance'])
         scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2], img.shape[3], img.shape[2],
-                               img.shape[3], img.shape[2]])
-        scale1 = scale1.to(device)
+                               img.shape[3], img.shape[2]]).to(device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
 

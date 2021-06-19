@@ -76,6 +76,7 @@ class DetectionLoss(nn.Module):
             self.priorbox = self.priorbox.forward()
 
     def forward(self, predictions, targets):
+        self.priorbox = self.priorbox.to(targets.device)
         loss_l, loss_c, loss_landm = self.multiboxloss(predictions, self.priorbox, targets)
         return  self.cfg['loc_weight'] * loss_l + loss_c + loss_landm
 
@@ -87,12 +88,12 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
     bboxes_target[:, :, -1] = 1
     
     mask = bboxes2masks(bboxes, img.shape)
-    
+
     att_img = pixelate_bboxes(img, bboxes)
     att_img.requires_grad = True
 
     attack = get_method_attack(name_attack, [att_img], epsilon, momentum)
-    loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:])
+    loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(att_img.device)
     loss_recog_fn = cross_entropy
 
     for _ in range(100):
