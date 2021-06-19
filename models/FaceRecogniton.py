@@ -11,6 +11,9 @@ class FaceRecognition(nn.Module):
 
     def forward(self, image): 
         boxes, landmarks = self.facedetector.detect_faces(image)
+        if len(boxes) == 0: 
+            return None, None
+            
         boxes = boxes.astype(int)
         faces = []
         for box in boxes:

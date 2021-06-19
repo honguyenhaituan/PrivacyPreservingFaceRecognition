@@ -1,9 +1,6 @@
-from numpy import mod
 import torch
 import torch.nn as nn
-from torch.autograd.gradcheck import zero_gradients
 from torch.nn.functional import cross_entropy
-from torchvision import models
 
 from utils.general import bboxes2masks, time_synchronized
 from utils.image import blur_bboxes, pixelate_bboxes
@@ -15,18 +12,19 @@ from models.retinaface.layers.functions.prior_box import PriorBox
 class I_FGSM: 
     def __init__(self, params, epsilon=20): 
         self.params = params
-        self.epsilon = epsilon
+        self.epsilon = epsilon / 255
+        self.alpha = 1/ 255
         self.updated_params = []
         for param in self.params:
             self.updated_params.append(torch.zeros_like(param))
 
     @torch.no_grad()
     def _cal_update(self, idx):
-        return torch.sign(self.params[idx].grad)
+        return -self.alpha * torch.sign(self.params[idx].grad)
 
     @torch.no_grad()
     def step(self):
-        for idx, param, updated_param in enumerate(zip(self.params, self.updated_params)):
+        for idx, (param, updated_param) in enumerate(zip(self.params, self.updated_params)):
             if param is None: 
                 continue
     
@@ -40,7 +38,8 @@ class I_FGSM:
 
     def zero_grad(self):
         for param in self.params:
-            param.grad.zero_()
+            if param.grad is not None:
+                param.grad.zero_()
 
 class MI_FGSM(I_FGSM):
     def __init__(self, params, epsilon=20, momemtum=0):
@@ -53,7 +52,7 @@ class MI_FGSM(I_FGSM):
     @torch.no_grad()
     def _cal_update(self, idx):
         grad = self.o_grad[idx] * self.momentum + self.params[idx].grad / torch.sum(torch.abs(self.params[idx].grad))
-        return torch.sign(grad)
+        return -self.alpha * torch.sign(grad)
 
     def zero_grad(self):
         for o_grad, param in zip(self.o_grad, self.params):
@@ -67,7 +66,7 @@ def get_method_attack(name_attack, params, epsilon, momentum) -> I_FGSM:
         return MI_FGSM(params, epsilon, momentum)
     return None
 
-class DetectionLoss(nn.modules):
+class DetectionLoss(nn.Module):
     def __init__(self, cfg, image_size):
         super(DetectionLoss, self).__init__()
         self.cfg = cfg
@@ -77,7 +76,7 @@ class DetectionLoss(nn.modules):
             self.priorbox = self.priorbox.forward()
 
     def forward(self, predictions, targets):
-        loss_l, loss_c, loss_landm = self.multiboxlos(predictions, self.priorbox, targets)
+        loss_l, loss_c, loss_landm = self.multiboxloss(predictions, self.priorbox, targets)
         return  self.cfg['loc_weight'] * loss_l + loss_c + loss_landm
 
 @torch.no_grad()
@@ -88,25 +87,26 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
     bboxes_target[:, :, -1] = 1
     
     mask = bboxes2masks(bboxes, img.shape)
-    #TODO: convert bboxes to type target
-    att_img = blur_bboxes(img, bboxes)
+    
+    att_img = pixelate_bboxes(img, bboxes)
     att_img.requires_grad = True
 
-    attack = get_method_attack(name_attack, [img], epsilon, momentum)
+    attack = get_method_attack(name_attack, [att_img], epsilon, momentum)
     loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:])
     loss_recog_fn = cross_entropy
 
-    for _ in range(min(epsilon + 4, int(epsilon * 1.25))):
+    for _ in range(100):
         attack.zero_grad()
         with torch.set_grad_enabled(True):
             out_dectect = model.facedetector(att_img)
             loss_detect = loss_detect_fn(out_dectect, bboxes_target)
 
             faces = []
-            for box in bboxes:
-                face = att_img[:, :, box[1]:box[3], box[0]:box[2]]
-                face = nn.functional.interpolate(face, size=(160, 160))
-                faces.append(face.squeeze())
+            for idx, boxes in enumerate(bboxes):
+                for box in boxes:
+                    face = att_img[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
+                    face = nn.functional.interpolate(face, size=(160, 160))
+                    faces.append(face.squeeze())
 
             faces = torch.stack(faces)
 
@@ -116,7 +116,10 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
 
         loss.backward()
         att_img.grad[mask] = 0
+        if (loss < 0.001):
+            break
 
         attack.step()
 
+    print(loss)
     return att_img
