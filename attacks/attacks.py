@@ -56,7 +56,8 @@ class MI_FGSM(I_FGSM):
 
     def zero_grad(self):
         for o_grad, param in zip(self.o_grad, self.params):
-            o_grad = o_grad * self.momentum + param.grad / torch.sum(torch.abs(param.grad))
+            if param.grad is not None:
+                o_grad = o_grad * self.momentum + param.grad / torch.sum(torch.abs(param.grad))
         super().zero_grad()
 
 def get_method_attack(name_attack, params, epsilon, momentum) -> I_FGSM:
@@ -82,11 +83,14 @@ class DetectionLoss(nn.Module):
 
 @torch.no_grad()
 def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, momentum, logger):
-    bboxes, names = model(img)
+    (bboxes, landmarks), names = model(img)
 
+    height, width = img.shape[-2:]
     bboxes_target = bboxes.clone()
     bboxes_target[:, :, -1] = 1
-    
+    bboxes_target[:, :, 0::2] /= width
+    bboxes_target[:, :, 1::2] /= height
+
     mask = bboxes2masks(bboxes, img.shape)
 
     att_img = pixelate_bboxes(img, bboxes)

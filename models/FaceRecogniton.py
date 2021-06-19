@@ -26,7 +26,7 @@ class FaceRecognition(nn.Module):
         out = self.facerecognition(faces)
         _, pred = torch.max(out, 1)
 
-        return torch.from_numpy(boxes).unsqueeze(0).to(pred.device), pred
+        return (torch.from_numpy(boxes).unsqueeze(0).to(pred.device), torch.from_numpy(landmarks).unsqueeze(0).to(pred.device)), pred
 
 def facerecognition_retinaface_facenet(pretrained=False):
     retinaface = retinaface_mnet(pretrained, phase='train')
