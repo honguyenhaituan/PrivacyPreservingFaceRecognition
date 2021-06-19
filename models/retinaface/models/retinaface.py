@@ -202,7 +202,7 @@ class RetinaFace(nn.Module):
         landms = landms.reshape(-1, 10, )
         # print(landms.shape)
 
-        return dets[:,:-1], dets[:, -1:], landms
+        return dets, landms
 
 def retinaface_mnet(pretrained=False, phase='train'):
     model = RetinaFace(cfg_mnet, phase)

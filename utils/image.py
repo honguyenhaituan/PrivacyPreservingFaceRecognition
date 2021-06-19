@@ -1,3 +1,5 @@
+import numpy
+import torch
 from torchvision import transforms
 from torchvision.transforms.functional import InterpolationMode
 

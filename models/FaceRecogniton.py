@@ -10,7 +10,7 @@ class FaceRecognition(nn.Module):
         self.facerecognition = facerecognition
 
     def forward(self, image): 
-        boxes, confidents, landmarks = self.facedetector.detect_faces(image)
+        boxes, landmarks = self.facedetector.detect_faces(image)
         boxes = boxes.astype(int)
         faces = []
         for box in boxes:
@@ -23,7 +23,7 @@ class FaceRecognition(nn.Module):
         out = self.facerecognition(faces)
         _, pred = torch.max(out, 1)
 
-        return boxes, pred
+        return torch.from_numpy(boxes).unsqueeze(0), pred
 
 def facerecognition_retinaface_facenet(pretrained=False):
     retinaface = retinaface_mnet(pretrained, phase='train')
