@@ -13,6 +13,15 @@ def bboxes2masks(bboxes, shape, reduce=0):
             mask[:, box[1] + sh:box[3] - sh, box[0] + sw:box[2] - sw] = 0
 
     return masks
+
+def predict2target(bboxes, landmarks, width, height):
+    target = torch.cat((bboxes[:, :, :-1], landmarks, bboxes[:, :, -1:]), dim=-1)
+    target = target.float()
+    target[:, :, -1] = 1
+    target[:, :, (0, 2)] /= width
+    target[:, :, (1, 3)] /= height
+
+    return target
     
 def time_synchronized():
     # pytorch-accurate time

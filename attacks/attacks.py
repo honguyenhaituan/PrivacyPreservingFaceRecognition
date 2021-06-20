@@ -1,8 +1,9 @@
+from utils.log import WandbLogger
 import torch
 import torch.nn as nn
 from torch.nn.functional import cross_entropy
 
-from utils.general import bboxes2masks, time_synchronized
+from utils.general import bboxes2masks, predict2target, time_synchronized
 from utils.image import blur_bboxes, pixelate_bboxes
 from utils.metrics import psnr, cosine
 from models.FaceRecogniton import FaceRecognition
@@ -78,20 +79,12 @@ class DetectionLoss(nn.Module):
 
     def forward(self, predictions, targets):
         self.priorbox = self.priorbox.to(targets.device)
-        loss_l, loss_c, loss_landm = self.multiboxloss(predictions, self.priorbox, targets)
+        loss_l, loss_c, _ = self.multiboxloss(predictions, self.priorbox, targets)
         return  self.cfg['loc_weight'] * loss_l + loss_c #+ loss_landm
 
-def predict2target(bboxes, landmarks, width, height):
-    target = torch.cat((bboxes[:, :, :-1], landmarks, bboxes[:, :, -1:]), dim=-1)
-    target = target.float()
-    target[:, :, -1] = 1
-    target[:, :, (0, 2)] /= width
-    target[:, :, (1, 3)] /= height
-
-    return target
-
 @torch.no_grad()
-def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, momentum, logger):
+def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, momentum, logger:WandbLogger):
+    t = time_synchronized()
     (bboxes, landmarks), names = model(img)
 
     height, width = img.shape[-2:]
@@ -105,7 +98,11 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
     attack = get_method_attack(name_attack, [att_img], epsilon, momentum)
     loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(att_img.device)
     loss_recog_fn = cross_entropy
+    
+    time_preprocess = time_synchronized() - t
+    logger.increase_log({"time/preprocess": time_preprocess}) if logger else None
 
+    t = time_synchronized()
     for _ in range(100):
         attack.zero_grad()
         with torch.set_grad_enabled(True):
@@ -141,6 +138,8 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
         loss.backward()
         att_img.grad[mask] = 0
         attack.step()
+    
+    time_attack = time_synchronized() - t
+    logger.increase_log({"time/attack": time_attack}) if logger else None
 
-    print(loss)
     return att_img
