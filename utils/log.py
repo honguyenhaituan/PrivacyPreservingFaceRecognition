@@ -36,5 +36,5 @@ class WandbLogger():
 
     def finish_run(self):
         if self.wandb_run:
-            wandb.log(self.dict)
+            self.end_epoch()
             wandb.run.finish()

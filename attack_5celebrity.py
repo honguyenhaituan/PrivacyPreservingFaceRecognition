@@ -13,7 +13,7 @@ from models.FaceRecogniton import *
 from attacks.attacks import attack_facerecognition
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
-def attack_5celebrity(opt, logger):
+def attack_5celebrity(opt):
     workers = 0 if os.name == 'nt' else 2
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -26,27 +26,43 @@ def attack_5celebrity(opt, logger):
 
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
     class_names = image_datasets['train'].classes
+    class_names = {k:v for k,v in enumerate(class_names)}
 
     retinaface = retinaface_mnet(pretrained=True).eval()
     facenet = InceptionResnetV1(classify=True, num_classes=len(class_names)).eval()
     facenet.load_state_dict(torch.load(opt.pretrain_facenet))
     facerecognition = FaceRecognition(retinaface, facenet).to(device)
 
+    logger = WandbLogger("PrivacyPreservingFaceRecognition-5celebrity", None, opt)
+    logger_images = []
+
     pred, label = [], []
     for image, target in dataloaders["val"]:
         image = image.to(device)
-        att_img = attack_facerecognition(facerecognition, image, 'MI-FGSM', 20, 0.9, None)
-        bbox, name = facerecognition(att_img)
+        att_img = attack_facerecognition(facerecognition, image, 'MI-FGSM', 20, 0.9, logger)
+        (bboxes, _), name = facerecognition(att_img)
 
         for _pred, _label in zip(name, target):
             pred.append(_pred.item())
             label.append(_label.item())
 
-    logger.log({"metrics/accuracy": accuracy_score(target, pred)})
-    logger.log({"metrics/f1": f1_score(target, pred)})
-    logger.log({"metrics/precision": precision_score(target, pred)})
-    logger.log({"metrics/recall": recall_score(target, pred)})
-    
+        if opt.save_attack_image: 
+            for _img, _target, _bboxes, _name, in zip(att_img, target, bboxes, [name]):
+                box_data = [{"position": {"minX": box[0], "minY": box[1], "maxX": box[2], "maxY": box[3]},
+                                    "class_id": int(cls),
+                                    "box_caption": class_names[cls],
+                                    "domain": "pixel"} for box, cls in zip(_bboxes.tolist(), _name.tolist())]
+                boxes = {"predictions": {"box_data": box_data, "class_labels": class_names}}  # inference-space
+                logger_images.append(logger.wandb.Image(_img, boxes=boxes, caption=class_names[_target.item()]))
+
+    logger.log({"metrics/accuracy": accuracy_score(label, pred)})
+    logger.log({"metrics/f1": f1_score(label, pred, average="micro")})
+    logger.log({"metrics/precision": precision_score(label, pred, average="micro")})
+    logger.log({"metrics/recall": recall_score(label, pred, average="micro")})
+
+    if logger_images:
+        logger.log({"Bounding Box Debugger/Images": logger_images})
+    logger.finish_run()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_5celebrity.py')
@@ -63,5 +79,4 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt)
 
-    wandb_logger = WandbLogger("PrivacyPreservingFaceRecognition/5celebrity", None, opt)
-    attack_5celebrity(opt, wandb_logger)
+    attack_5celebrity(opt)
