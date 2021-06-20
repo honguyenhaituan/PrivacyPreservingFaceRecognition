@@ -10,23 +10,24 @@ class FaceRecognition(nn.Module):
         self.facerecognition = facerecognition
 
     def forward(self, image): 
-        boxes, landmarks = self.facedetector.detect_faces(image)
-        if len(boxes) == 0: 
+        bboxes, landmarks = self.facedetector.detect_faces(image)
+        if len(bboxes) == 0: 
             return None, None
 
-        boxes = boxes.astype(int)
+        bboxes = bboxes.astype(int)
         faces = []
-        for box in boxes:
-            face = image[:, :, box[1]:box[3], box[0]:box[2]]
-            face = nn.functional.interpolate(face, size=(160, 160))
-            faces.append(face.squeeze())
+        for idx, boxes in enumerate(bboxes):
+            for box in boxes:
+                face = image[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
+                face = nn.functional.interpolate(face, size=(160, 160))
+                faces.append(face.squeeze())
 
         faces = torch.stack(faces)
 
         out = self.facerecognition(faces)
         _, pred = torch.max(out, 1)
 
-        return (torch.from_numpy(boxes).unsqueeze(0).to(pred.device), torch.from_numpy(landmarks).unsqueeze(0).to(pred.device)), pred
+        return (torch.from_numpy(bboxes).to(pred.device), torch.from_numpy(landmarks).to(pred.device)), pred
 
 def facerecognition_retinaface_facenet(pretrained=False):
     retinaface = retinaface_mnet(pretrained, phase='train')

@@ -54,13 +54,11 @@ class LandmarkHead(nn.Module):
         return out.view(out.shape[0], -1, 10)
 
 class RetinaFace(nn.Module):
-    def __init__(self, cfg = None, phase = 'train'):
+    def __init__(self, cfg = None):
         """
         :param cfg:  Network related settings.
-        :param phase: train or test.
         """
         super(RetinaFace,self).__init__()
-        self.phase = phase
         self.cfg = cfg
         backbone = None
         if cfg['name'] == 'mobilenet0.25':
@@ -137,25 +135,16 @@ class RetinaFace(nn.Module):
         classifications = torch.cat([self.ClassHead[i](feature) for i, feature in enumerate(features)],dim=1)
         ldm_regressions = torch.cat([self.LandmarkHead[i](feature) for i, feature in enumerate(features)], dim=1)
 
-        if self.phase == 'train':
-            output = (bbox_regressions, classifications, ldm_regressions)
-        else:
-            output = (bbox_regressions, F.softmax(classifications, dim=-1), ldm_regressions)
-        return output
+        return (bbox_regressions, classifications, ldm_regressions)
 
-    def detect_faces(self, img, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
-        device = img.device
+    @torch.no_grad()
+    def get_faces(self, out, img_shape, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
+        loc, conf, landms = out
+        conf = F.softmax(conf, dim=-1)
 
-        im_height, im_width = img.shape[2:]
+        device = loc.device
+        im_height, im_width = img_shape[2:]
         scale = torch.Tensor([im_width, im_height, im_width, im_height]).to(device)
-
-        # tic = time.time()
-        with torch.no_grad():
-            phase = self.phase
-            self.phase = 'test'
-            loc, conf, landms = self.forward(img)  # forward pass
-            self.phase = phase
-            # print('net forward time: {:.4f}'.format(time.time() - tic))
 
         priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
         priors = priorbox.forward().to(device)
@@ -165,9 +154,9 @@ class RetinaFace(nn.Module):
         boxes = boxes.cpu().numpy()
         scores = conf.squeeze(0).data.cpu().numpy()[:, 1]
         landms = decode_landm(landms.data.squeeze(0), prior_data, self.cfg['variance'])
-        scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
-                               img.shape[3], img.shape[2], img.shape[3], img.shape[2],
-                               img.shape[3], img.shape[2]]).to(device)
+        scale1 = torch.Tensor([img_shape[3], img_shape[2], img_shape[3], img_shape[2],
+                               img_shape[3], img_shape[2], img_shape[3], img_shape[2],
+                               img_shape[3], img_shape[2]]).to(device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
 
@@ -201,17 +190,23 @@ class RetinaFace(nn.Module):
         landms = landms.reshape(-1, 10, )
         # print(landms.shape)
 
-        return dets, landms
+        return np.expand_dims(dets, axis=0), np.expand_dims(landms, axis=0)
 
-def retinaface_mnet(pretrained=False, phase='train'):
-    model = RetinaFace(cfg_mnet, phase)
+    @torch.no_grad()
+    def detect_faces(self, img, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
+        out = self.forward(img)
+        return self.get_faces(out, img.shape, confidence_threshold, top_k, nms_threshold, keep_top_k, resize)
+
+        
+def retinaface_mnet(pretrained=False):
+    model = RetinaFace(cfg_mnet)
     if pretrained:
         model = load_pretrain(model, 'mnet')
 
     return model
 
-def retinaface_rnet(pretrained=False, phase='train'):
-    model = RetinaFace(cfg_re50, phase)
+def retinaface_rnet(pretrained=False):
+    model = RetinaFace(cfg_re50)
     if pretrained:
         model = load_pretrain(model, 'rnet')
 

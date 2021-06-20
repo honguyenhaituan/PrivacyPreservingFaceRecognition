@@ -71,7 +71,7 @@ class DetectionLoss(nn.Module):
     def __init__(self, cfg, image_size):
         super(DetectionLoss, self).__init__()
         self.cfg = cfg
-        self.multiboxloss = MultiBoxLoss(2, 0.35, True, 0, True, 7, 0.35, False)
+        self.multiboxloss = MultiBoxLoss(2, 0.45, True, 0, True, 7, 0.35, False)
         self.priorbox = PriorBox(cfg, image_size)
         with torch.no_grad():
             self.priorbox = self.priorbox.forward()
@@ -112,6 +112,19 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
             out_dectect = model.facedetector(att_img)
             loss_detect = loss_detect_fn(out_dectect, bboxes_target)
 
+        loss_detect.backward()
+        att_img.grad[mask] = 0
+        attack.step()
+
+    for _ in range(25):
+        attack.zero_grad()
+        with torch.set_grad_enabled(True):
+            out_dectect = model.facedetector(att_img)
+            loss_detect = loss_detect_fn(out_dectect, bboxes_target)
+
+            bboxes, _ = model.facedetector.get_faces(out_dectect, att_img.shape)
+            bboxes = bboxes.astype(int)
+
             faces = []
             for idx, boxes in enumerate(bboxes):
                 for box in boxes:
@@ -127,9 +140,6 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
 
         loss.backward()
         att_img.grad[mask] = 0
-        if (loss < 0.001):
-            break
-
         attack.step()
 
     print(loss)
