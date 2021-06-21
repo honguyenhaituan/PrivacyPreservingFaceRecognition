@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.nn.functional import cross_entropy
 
 from utils.general import bboxes2masks, predict2target, time_synchronized
-from utils.image import blur_bboxes, pixelate_bboxes
+from utils.image import blur_bboxes
 from utils.metrics import psnr, cosine
 from models.FaceRecogniton import FaceRecognition
 from models.retinaface.layers.modules.multibox_loss import MultiBoxLoss
@@ -61,11 +61,11 @@ class MI_FGSM(I_FGSM):
                 o_grad = o_grad * self.momentum + param.grad / torch.sum(torch.abs(param.grad))
         super().zero_grad()
 
-def get_method_attack(name_attack, params, epsilon, momentum) -> I_FGSM:
-    if name_attack == 'I-FGSM': 
-        return I_FGSM(params, epsilon)
-    if name_attack == 'MI-FGSM':
-        return MI_FGSM(params, epsilon, momentum)
+def get_method_attack(params, opt) -> I_FGSM:
+    if opt.name_attack == 'I-FGSM': 
+        return I_FGSM(params, opt.epsilon)
+    if opt.name_attack == 'MI-FGSM':
+        return MI_FGSM(params, opt.epsilon, opt.momentum)
     return None
 
 class DetectionLoss(nn.Module):
@@ -83,7 +83,7 @@ class DetectionLoss(nn.Module):
         return  self.cfg['loc_weight'] * loss_l + loss_c #+ loss_landm
 
 @torch.no_grad()
-def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, momentum, logger:WandbLogger):
+def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt):
     t = time_synchronized()
     (bboxes, landmarks), names = model(img)
 
@@ -92,10 +92,10 @@ def attack_facerecognition(model:FaceRecognition, img, name_attack, epsilon, mom
 
     mask = bboxes2masks(bboxes, img.shape, 0.2)
 
-    att_img = pixelate_bboxes(img, bboxes)
+    att_img = blur_bboxes(img, bboxes, opt.kernel_blur, opt.type_blur)
     att_img.requires_grad = True
 
-    attack = get_method_attack(name_attack, [att_img], epsilon, momentum)
+    attack = get_method_attack([att_img], opt)
     loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(att_img.device)
     loss_recog_fn = cross_entropy
     

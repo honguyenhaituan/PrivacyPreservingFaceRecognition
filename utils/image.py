@@ -1,10 +1,10 @@
 import numpy
 import torch
 from torchvision import transforms
-from torchvision.transforms.functional import InterpolationMode
+from torchvision.transforms.functional import InterpolationMode, gaussian_blur
 
-def blur_bboxes(images, bboxes, kernel=9):
-    gaussian_blur = transforms.GaussianBlur(kernel)
+def gausianblur_bboxes(images, bboxes, kernel=9):
+    gaussian_blur = transforms.GaussianBlur(kernel, sigma=10)
     result = images.clone()
     for image, boxes in zip(result, bboxes):
         for box in boxes: 
@@ -28,3 +28,11 @@ def pixelate_bboxes(images, bboxes, kernel=9):
             image[:, box[1]:box[3], box[0]:box[2]] = _pixelate(crop_bbox, kernel)
 
     return result
+
+def blur_bboxes(image, bboxes, kernel=9, type=2):
+    if type == 0: 
+        return image
+    if type == 1:
+        return gausianblur_bboxes(image, bboxes, kernel)
+    if type == 2:
+        return pixelate_bboxes(image, bboxes, kernel)

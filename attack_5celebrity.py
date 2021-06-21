@@ -48,7 +48,7 @@ def attack_5celebrity(opt):
     pred, label = [], []
     for image, target in dataloaders["val"]:
         image = image.to(device)
-        att_img = attack_facerecognition(facerecognition, image, 'MI-FGSM', 20, 0.9, logger)
+        att_img = attack_facerecognition(facerecognition, image, logger, opt)
         (bboxes, _), name = facerecognition(att_img)
 
         for _pred, _label in zip(name, target):
@@ -92,7 +92,9 @@ if __name__ == '__main__':
     parser.add_argument('--name-attack', type=str, default='I-FGSM', help='name method attack model')
     parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
-    parser.add_argument('--type_blur', action='store_true', help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
+
+    parser.add_argument('--type-blur', type=int, default=2, help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
+    parser.add_argument('--kernel-blur', type=int, default=9, help='Kernel of algorithm blur')
 
     parser.add_argument('--data', type=str, default='/content/drive/MyDrive/data/5 Celebrity Faces Dataset', help='dataset')
     parser.add_argument('--pretrain-facenet', type=str, default='/content/drive/MyDrive/pretrain/face_recognition.pth', help='Path pretrain')
