@@ -9,13 +9,20 @@ from threading import Thread
 from utils.log import WandbLogger
 
 from torchvision import datasets, transforms
+from torchvision.utils import save_image, make_grid
 from models.FaceRecogniton import *
 from attacks.attacks import attack_facerecognition
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from utils.general import increment_path
 
 def attack_5celebrity(opt):
     logger = WandbLogger("PrivacyPreservingFaceRecognition-5celebrity", None, opt)
-    logger_images = []
+    logger_attack_img, logger_compare_img = [], []
+    save_dir = increment_path(Path(opt.save_dir) / "exp", exist_ok=False)  # increment run
+    (save_dir / 'attack_img' if opt.save_attack_image else save_dir).mkdir(parents=True, exist_ok=True)
+    (save_dir / 'compare_img' if opt.save_compare_image else save_dir).mkdir(parents=True, exist_ok=True)
+
+
     workers = 0 if os.name == 'nt' else 2
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -55,17 +62,29 @@ def attack_5celebrity(opt):
                                     "box_caption": class_names[cls],
                                     "domain": "pixel"} for box, cls in zip(_bboxes.tolist(), _name.tolist())]
                 boxes = {"predictions": {"box_data": box_data, "class_labels": class_names}}  # inference-space
-                logger_images.append([len(logger_images), logger.wandb.Image(_img, boxes=boxes, caption=class_names[_target.item()], classes=class_set), class_names[_target.item()]])
+                logger_attack_img.append([len(logger_attack_img), logger.wandb.Image(_img, boxes=boxes, caption=class_names[_target.item()], classes=class_set), class_names[_target.item()]])
+
+                save_image(_img, os.path.join(save_dir, "attack_img", "%i.png" % len(logger_attack_img)))
+
+        if opt.save_compare_image:
+            for _img, _att_img in zip(image, att_img):
+                image_compare = make_grid([_img, _att_img - _img, _att_img])
+                save_image(image_compare, os.path.join(save_dir, "compare_img", "%i.png" % len(pred)))
+                logger_compare_img.append(logger.wandb.Image(os.path.join(save_dir, "compare_img", "%i.png" % len(pred))))
 
     logger.log({"metrics/accuracy": accuracy_score(label, pred)})
     logger.log({"metrics/f1": f1_score(label, pred, average="micro")})
     logger.log({"metrics/precision": precision_score(label, pred, average="micro")})
     logger.log({"metrics/recall": recall_score(label, pred, average="micro")})
 
-    if logger_images:
+    if logger_attack_img:
         columns = ["id", "image", "ground truth"]
-        table = logger.wandb.Table(data=logger_images, columns=columns)
+        table = logger.wandb.Table(data=logger_attack_img, columns=columns)
         logger.log({"Bounding Box Debugger/Images": table})
+
+    if logger_compare_img:
+        logger.log({"Comapare image": logger_compare_img})
+
     logger.finish_run()
 
 if __name__ == '__main__':
@@ -77,9 +96,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--data', type=str, default='/content/drive/MyDrive/data/5 Celebrity Faces Dataset', help='dataset')
     parser.add_argument('--pretrain-facenet', type=str, default='/content/drive/MyDrive/pretrain/face_recognition.pth', help='Path pretrain')
-    parser.add_argument('--save-attack-image', action='store_true', help='Save image file after attack')
-    parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
     
+    parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
+    parser.add_argument('--save-attack-image', action='store_true', help='Save image file after attack')    
+    parser.add_argument('--save-compare-image', action='store_true', help='Save original, delta and attack image')    
+        
     opt = parser.parse_args()
     print(opt)
 
