@@ -68,7 +68,7 @@ def attack_5celebrity(opt):
 
         if opt.save_compare_image:
             for _img, _att_img in zip(image, att_img):
-                image_compare = make_grid([_img, _att_img - _img, _att_img])
+                image_compare = make_grid([_img, (_att_img - _img) * 0.5 + 0.5, _att_img])
                 save_image(image_compare, os.path.join(save_dir, "compare_img", "%i.png" % len(pred)))
                 logger_compare_img.append(logger.wandb.Image(os.path.join(save_dir, "compare_img", "%i.png" % len(pred))))
 

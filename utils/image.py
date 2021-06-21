@@ -7,9 +7,9 @@ def gausianblur_bboxes(images, bboxes, kernel=9):
     gaussian_blur = transforms.GaussianBlur(kernel, sigma=10)
     result = images.clone()
     for image, boxes in zip(result, bboxes):
+        blur_image = gaussian_blur(image)
         for box in boxes: 
-            crop_bbox = image[:, box[1]:box[3], box[0]:box[2]]
-            image[:, box[1]:box[3], box[0]:box[2]] = gaussian_blur(crop_bbox)
+            image[:, box[1]:box[3], box[0]:box[2]] = blur_image[:, box[1]:box[3], box[0]:box[2]]
 
     return result
 
