@@ -83,7 +83,7 @@ class DetectionLoss(nn.Module):
         return  self.cfg['loc_weight'] * loss_l + loss_c #+ loss_landm
 
 @torch.no_grad()
-def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt):
+def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt, delta=False):
     t = time_synchronized()
     (bboxes, landmarks), names = model(img)
 
@@ -94,6 +94,8 @@ def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt):
 
     att_img = blur_bboxes(img, bboxes, opt.kernel_blur, opt.type_blur)
     att_img.requires_grad = True
+    if delta: 
+        blur_image = att_img.clone()
 
     attack = get_method_attack([att_img], opt)
     loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(att_img.device)
@@ -142,4 +144,7 @@ def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt):
     time_attack = time_synchronized() - t
     logger.increase_log({"time/attack": time_attack}) if logger else None
 
-    return att_img
+    if delta: 
+        return att_img, (blur_image - img, att_img - blur_image)
+    else:
+        return att_img
