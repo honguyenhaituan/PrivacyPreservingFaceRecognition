@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .retinaface.models.retinaface import retinaface_mnet
-from facenet_pytorch import InceptionResnetV1
+from .facenet import FaceNet
 
 class FaceRecognition(nn.Module):
     def __init__(self, facedetector, facerecognition):
@@ -31,6 +31,6 @@ class FaceRecognition(nn.Module):
 
 def facerecognition_retinaface_facenet(pretrained=None, num_classes=None):
     retinaface = retinaface_mnet(pretrained=True)
-    facenet = InceptionResnetV1(pretrained=pretrained, num_classes=num_classes)
+    facenet = FaceNet(pretrained=pretrained, num_classes=num_classes)
 
     return FaceRecognition(retinaface, facenet)

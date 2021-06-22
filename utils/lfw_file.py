@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from shutil import copy2
 
 def add_extension(path):
     if os.path.exists(path+'.jpg'):
@@ -39,3 +40,11 @@ def read_pairs(pairs_filename):
             pair = line.strip().split()
             pairs.append(pair)
     return np.array(pairs, dtype=object)
+
+def make_test_dataset(data_dir, test_dir, pairs_filename): 
+    pairs = read_pairs(pairs_filename)
+    path_list, _ = get_paths(data_dir, pairs)
+    for path in path_list: 
+        n_path = path.replace(data_dir, test_dir)
+        os.makedirs(os.path.dirname(n_path), exist_ok=True)
+        copy2(path, n_path)

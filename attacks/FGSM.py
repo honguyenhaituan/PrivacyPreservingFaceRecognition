@@ -4,7 +4,7 @@ class I_FGSM:
     def __init__(self, params, epsilon=20): 
         self.params = params
         self.epsilon = epsilon / 255
-        self.alpha = 1/ 255
+        self.alpha = 1 / 255
         self.updated_params = []
         for param in self.params:
             self.updated_params.append(torch.zeros_like(param))
