@@ -11,7 +11,7 @@ from utils.log import WandbLogger
 from torchvision import datasets, transforms
 from torchvision.utils import save_image, make_grid
 from models.FaceRecogniton import *
-from attacks.attacks import attack_facerecognition
+from attacks.functions import attack_facerecognition
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from utils.general import increment_path
 
@@ -67,8 +67,8 @@ def attack_5celebrity(opt):
                 save_image(_img, os.path.join(save_dir, "attack_img", "%i.png" % len(logger_attack_img)))
 
         if opt.save_compare_image:
-            for _img, _att_img in zip(image, att_img):
-                image_compare = make_grid([_img, delta_blur * 0.5 + 0.5, delta_att * 0.5 + 0.5, _att_img])
+            for _img, _att_img, _delta_blur, _delta_att in zip(image, att_img, delta_blur, delta_att):
+                image_compare = make_grid([_img, _delta_blur * 0.5 + 0.5, _delta_att * 0.5 + 0.5, _att_img])
                 save_image(image_compare, os.path.join(save_dir, "compare_img", "%i.png" % len(pred)))
                 logger_compare_img.append(logger.wandb.Image(os.path.join(save_dir, "compare_img", "%i.png" % len(pred))))
 

@@ -3,13 +3,13 @@ import torch.nn as nn
 from .retinaface.models.retinaface import retinaface_mnet
 from facenet_pytorch import InceptionResnetV1
 
-class FaceRecognition(nn.Module):
-    def __init__(self, facedetector, facerecognition):
-        super(FaceRecognition, self).__init__()
+class FaceVerification(nn.Module):
+    def __init__(self, facedetector, backbone):
+        super(FaceVerification, self).__init__()
         self.facedetector = facedetector
-        self.facerecognition = facerecognition
+        self.backbone = backbone
 
-    def forward(self, image): 
+    def embeded(self, image): 
         bboxes, landmarks = self.facedetector.detect_faces(image)
         if len(bboxes) == 0: 
             return None, None
@@ -24,13 +24,12 @@ class FaceRecognition(nn.Module):
 
         faces = torch.stack(faces)
 
-        out = self.facerecognition(faces)
-        _, pred = torch.max(out, 1)
+        out = self.backbone(faces)
 
-        return (torch.from_numpy(bboxes).to(pred.device), torch.from_numpy(landmarks).to(pred.device)), pred
+        return (torch.from_numpy(bboxes).to(out.device), torch.from_numpy(landmarks).to(out.device)), out
 
-def facerecognition_retinaface_facenet(pretrained=None, num_classes=None):
+def faceverification_retinaface_facenet(pretrained=None):
     retinaface = retinaface_mnet(pretrained=True)
-    facenet = InceptionResnetV1(pretrained=pretrained, num_classes=num_classes)
+    facenet = InceptionResnetV1(pretrained=pretrained)
 
-    return FaceRecognition(retinaface, facenet)
+    return FaceVerification(retinaface, facenet)
