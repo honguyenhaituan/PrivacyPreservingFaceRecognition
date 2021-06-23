@@ -203,6 +203,7 @@ class RetinaFace(nn.Module):
         r_dets, r_landms = [], []
         for loc, conf, land in zip(bboxes, confs, lands):
             dets, ladms = self.nms((loc, conf, land), img_shape)
+            r_det, r_landm = [], []
             if self.keep_all:
                 r_det, r_landm = dets, ladms
             elif self.select_largest: 

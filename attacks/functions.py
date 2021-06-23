@@ -90,5 +90,5 @@ def attack_facerecognition(model:FaceRecognition, img, logger:WandbLogger, opt, 
     return _attack_face(model, img, cross_entropy, logger, opt, delta)
 
 @torch.no_grad()
-def attack_facereverification(model:FaceVerification, img, logger:WandbLogger, opt, delta=False):
+def attack_faceverification(model:FaceVerification, img, logger:WandbLogger, opt, delta=False):
     return _attack_face(model, img, MSELoss(), logger, opt, delta)

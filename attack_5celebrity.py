@@ -40,7 +40,7 @@ def attack_5celebrity(opt):
     retinaface = retinaface_mnet(pretrained=True).eval()
     facenet = FaceNet(classify=True, num_classes=len(class_names)).eval()
     facenet.load_state_dict(torch.load(opt.pretrain_facenet))
-    facerecognition = FaceRecognition(retinaface, facenet).to(device)
+    facerecognition = FaceRecognition(retinaface, facenet).eval().to(device)
 
     pred, label = [], []
     for image, target in dataloaders["val"]:
