@@ -54,7 +54,7 @@ def _attack_face(model:FaceVerification, img, loss_face_fn, logger, opt, delta=F
 
             faces = []
             for idx, (p_boxes, t_boxes) in enumerate(zip(p_bboxes, t_bboxes)):
-                if p_bboxes.shape != t_boxes.shape:
+                if p_boxes.shape != t_boxes.shape:
                     boxes = t_boxes
                 else:
                     boxes = p_boxes
