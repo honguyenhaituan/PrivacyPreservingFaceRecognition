@@ -41,7 +41,7 @@ def attack_lfw(opt):
             save_image(_att_img, save_path)
 
         if opt.log_wandb:
-            logger.log({"sample": logger.wandb.Image(_att_img[0], caption=path[0])})
+            logger.log({"sample": logger.wandb.Image(att_img[0], caption=path[0])})
             logger.end_epoch()
 
 if __name__ == '__main__':
