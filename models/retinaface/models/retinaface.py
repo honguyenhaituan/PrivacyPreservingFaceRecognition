@@ -203,7 +203,7 @@ class RetinaFace(nn.Module):
         r_dets, r_landms = [], []
         for loc, conf, land in zip(bboxes, confs, lands):
             dets, ladms = self.nms((loc, conf, land), img_shape)
-            r_det, r_landm = [], []
+            r_det, r_landm = np.array([]), np.array([])
             if self.keep_all:
                 r_det, r_landm = dets, ladms
             elif self.select_largest: 
@@ -213,8 +213,10 @@ class RetinaFace(nn.Module):
                         area = (det[3] - det[1]) * (det[2] - det[0])
                         r_det, r_landm = (dets[idx:idx + 1], ladms[idx:idx + 1])
             else:
-                r_det, r_landm = (det[0:1], ladm[0:1])        
-
+                r_det, r_landm = (det[0:1], ladm[0:1])  
+            if r_det != np.array([]):
+                r_det[:, (0, 2)] = np.clip(r_det[:, (0, 2)], 0, img_shape[-1])
+                r_det[:, (1, 3)] = np.clip(r_det[:, (1, 3)], 0, img_shape[-2]) 
             r_dets.append(torch.from_numpy(r_det.astype(int)))
             r_landms.append(torch.from_numpy(r_landm.astype(int)))
 
