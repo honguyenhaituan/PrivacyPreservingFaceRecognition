@@ -207,10 +207,10 @@ class RetinaFace(nn.Module):
                 r_det, r_landm = dets, ladms
             elif self.select_largest: 
                 area = 0
-                for idx, det, ladm in enumerate(zip(dets, ladms)):
+                for idx, (det, ladm) in enumerate(zip(dets, ladms)):
                     if (det[3] - det[1]) * (det[2] - det[0]) > area: 
                         area = (det[3] - det[1]) * (det[2] - det[0])
-                        r_det, r_landm = (det[idx:idx + 1], ladm[idx:idx + 1])
+                        r_det, r_landm = (dets[idx:idx + 1], ladms[idx:idx + 1])
             else:
                 r_det, r_landm = (det[0:1], ladm[0:1])        
 

@@ -24,7 +24,7 @@ class FaceVerification(nn.Module):
             faces = torch.stack(faces)
             out = self.facerecognition(faces)
 
-        return (bboxes.to(out.device), landmarks.to(out.device)), out
+        return (bboxes, landmarks), out
 
 class FaceRecognition(FaceVerification):
     def forward(self, image):

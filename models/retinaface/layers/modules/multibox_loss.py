@@ -54,12 +54,11 @@ class MultiBoxLoss(nn.Module):
             ground_truth (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
-        device = targets.device
-
         loc_data, conf_data, landm_data = predictions
         priors = priors
         num = loc_data.size(0)
         num_priors = (priors.size(0))
+        device = loc_data.device
 
         # match priors (default boxes) and ground truth boxes
         loc_t = torch.Tensor(num, num_priors, 4).to(device)

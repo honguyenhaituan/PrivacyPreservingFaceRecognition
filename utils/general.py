@@ -9,22 +9,22 @@ def bboxes2masks(bboxes, shape, reduce=0):
         raise ValueError("Reduce must be in 0 to 1")
 
     masks = torch.ones(shape, dtype=torch.bool)
-    for idx, boxes, mask in enumerate(zip(bboxes, masks)): 
+    for boxes, mask in zip(bboxes, masks): 
         for box in boxes:
             height, width = box[3] - box[1], box[2] - box[0]
             sh, sw = int(height * reduce / 2), int(width * reduce / 2)
-            mask[idx, :, box[1] + sh:box[3] - sh, box[0] + sw:box[2] - sw] = 0
+            mask[:, box[1] + sh:box[3] - sh, box[0] + sw:box[2] - sw] = 0
 
     return masks
 
-def predict2target(bboxes, landmarks, width, height):
+def predict2target(bboxes, landmarks, width, height, device):
     target = []
     for box, landmark in zip(bboxes, landmarks):
-        _target = torch.cat((box[:, :, :-1], landmark, box[:, :, -1:]), dim=-1)
-        _target = _target.float()
-        _target[:, :, -1] = 1
-        _target[:, :, (0, 2)] /= width
-        _target[:, :, (1, 3)] /= height
+        _target = torch.cat((box[:, :-1], landmark, box[:, -1:]), dim=-1)
+        _target = _target.float().to(device)
+        _target[:, -1] = 1
+        _target[:, (0, 2)] /= width
+        _target[:, (1, 3)] /= height
 
         target.append(_target)
 

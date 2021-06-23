@@ -18,7 +18,7 @@ def _attack_face(model:FaceVerification, img, loss_face_fn, logger, opt, delta=F
     (t_bboxes, t_landmarks), names = model(img)
 
     height, width = img.shape[-2:]
-    bboxes_target = predict2target(t_bboxes, t_landmarks, width, height)
+    bboxes_target = predict2target(t_bboxes, t_landmarks, width, height, img.device)
 
     mask = bboxes2masks(t_bboxes, img.shape, 0.2)
 
@@ -53,7 +53,7 @@ def _attack_face(model:FaceVerification, img, loss_face_fn, logger, opt, delta=F
             p_bboxes, _ = model.facedetector.get_faces(out_dectect, att_img.shape)
 
             faces = []
-            for idx, p_boxes, t_boxes in enumerate(zip(p_bboxes, t_bboxes)):
+            for idx, (p_boxes, t_boxes) in enumerate(zip(p_bboxes, t_bboxes)):
                 if len(p_bboxes) != len(t_boxes):
                     boxes = t_boxes
                 else:

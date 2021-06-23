@@ -14,6 +14,6 @@ class DetectionLoss(nn.Module):
             self.priorbox = self.priorbox.forward()
 
     def forward(self, predictions, targets):
-        self.priorbox = self.priorbox.to(targets.device)
+        self.priorbox = self.priorbox.to(predictions[0].device)
         loss_l, loss_c, _ = self.multiboxloss(predictions, self.priorbox, targets)
         return  self.cfg['loc_weight'] * loss_l + loss_c #+ loss_landm
