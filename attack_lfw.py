@@ -53,10 +53,10 @@ if __name__ == '__main__':
     parser.add_argument('--type-blur', type=int, default=2, help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
     parser.add_argument('--kernel-blur', type=int, default=9, help='Kernel of algorithm blur')
 
-    parser.add_argument('--data', type=str, default='/content/drive/MyDrive/data/5 Celebrity Faces Dataset', help='dataset')
+    parser.add_argument('--data', type=str, default='./data/lfw', help='dataset')
     parser.add_argument('--batch-size', type=int, default=32, help='batch size dataloader')
 
-    parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
+    parser.add_argument('--save-dir', type=str, default='./data/lfw-attack', help='Dir save all result')
     parser.add_argument('--log-wandb', action='store_true', help='Log something in wandb')
     opt = parser.parse_args()
     print(opt)
