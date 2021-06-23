@@ -54,13 +54,18 @@ class LandmarkHead(nn.Module):
         return out.view(out.shape[0], -1, 10)
 
 class RetinaFace(nn.Module):
-    def __init__(self, cfg = None):
+    def __init__(
+        self, cfg = None, select_largest=True, keep_all=False, confidence_threshold=0.5):
         """
         :param cfg:  Network related settings.
         """
         super(RetinaFace,self).__init__()
         self.cfg = cfg
+        self.select_largest = select_largest
+        self.keep_all = keep_all
+        self.confidence_threshold = confidence_threshold
         backbone = None
+
         if cfg['name'] == 'mobilenet0.25':
             backbone = MobileNetV1()
             if cfg['pretrain']:
@@ -138,7 +143,7 @@ class RetinaFace(nn.Module):
         return (bbox_regressions, classifications, ldm_regressions)
 
     @torch.no_grad()
-    def get_faces(self, out, img_shape, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
+    def nms(self, out, img_shape, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
         loc, conf, landms = out
         conf = F.softmax(conf, dim=-1)
 
@@ -161,7 +166,7 @@ class RetinaFace(nn.Module):
         landms = landms.cpu().numpy()
 
         # ignore low scores
-        inds = np.where(scores > confidence_threshold)[0]
+        inds = np.where(scores > self.confidence_threshold)[0]
         boxes = boxes[inds]
         landms = landms[inds]
         scores = scores[inds]
@@ -190,13 +195,34 @@ class RetinaFace(nn.Module):
         landms = landms.reshape(-1, 10, )
         # print(landms.shape)
 
-        return np.expand_dims(dets, axis=0), np.expand_dims(landms, axis=0)
+        return dets, landms
 
     @torch.no_grad()
-    def detect_faces(self, img, confidence_threshold=0.5, top_k=5000, nms_threshold=0.4, keep_top_k=750, resize=1):
-        out = self.forward(img)
-        return self.get_faces(out, img.shape, confidence_threshold, top_k, nms_threshold, keep_top_k, resize)
+    def get_faces(self, out, img_shape):
+        bboxes, confs, lands = out
+        r_dets, r_landms = [], []
+        for loc, conf, land in zip(bboxes, confs, lands):
+            dets, ladms = self.nms((loc, conf, land), img_shape)
+            if self.keep_all:
+                r_det, r_landm = dets, ladms
+            elif self.select_largest: 
+                area = 0
+                for idx, det, ladm in enumerate(zip(dets, ladms)):
+                    if (det[3] - det[1]) * (det[2] - det[0]) > area: 
+                        area = (det[3] - det[1]) * (det[2] - det[0])
+                        r_det, r_landm = (det[idx:idx + 1], ladm[idx:idx + 1])
+            else:
+                r_det, r_landm = (det[0:1], ladm[0:1])        
 
+            r_dets.append(torch.from_numpy(r_det.astype(int)))
+            r_landms.append(torch.from_numpy(r_landm.astype(int)))
+
+        return r_dets, r_landms
+
+    @torch.no_grad()
+    def detect_faces(self, img):
+        out = self.forward(img)
+        return self.get_faces(out, img.shape)
         
 def retinaface_mnet(pretrained=False):
     model = RetinaFace(cfg_mnet)

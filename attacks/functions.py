@@ -1,4 +1,3 @@
-from models.FaceVerification import FaceVerification
 from utils.log import WandbLogger
 import torch
 import torch.nn as nn
@@ -8,22 +7,22 @@ from torch.nn import MSELoss, L1Loss
 from utils.general import bboxes2masks, predict2target, time_synchronized
 from utils.image import blur_bboxes
 from utils.metrics import psnr, cosine
-from models.FaceRecogniton import FaceRecognition
+from models.facemodel import FaceRecognition, FaceVerification
 
 from .FGSM import get_method_attack
 from .loss import DetectionLoss
 
 @torch.no_grad()
-def _attack_face(model, img, loss_face_fn, logger, opt, delta=False):
+def _attack_face(model:FaceVerification, img, loss_face_fn, logger, opt, delta=False):
     t = time_synchronized()
-    (bboxes, landmarks), names = model(img)
+    (t_bboxes, t_landmarks), names = model(img)
 
     height, width = img.shape[-2:]
-    bboxes_target = predict2target(bboxes, landmarks, width, height)
+    bboxes_target = predict2target(t_bboxes, t_landmarks, width, height)
 
-    mask = bboxes2masks(bboxes, img.shape, 0.2)
+    mask = bboxes2masks(t_bboxes, img.shape, 0.2)
 
-    att_img = blur_bboxes(img, bboxes, opt.kernel_blur, opt.type_blur)
+    att_img = blur_bboxes(img, t_bboxes, opt.kernel_blur, opt.type_blur)
     att_img.requires_grad = True
     if delta: 
         blur_image = att_img.clone()
@@ -51,20 +50,26 @@ def _attack_face(model, img, loss_face_fn, logger, opt, delta=False):
             out_dectect = model.facedetector(att_img)
             loss_detect = loss_detect_fn(out_dectect, bboxes_target)
 
-            bboxes, _ = model.facedetector.get_faces(out_dectect, att_img.shape)
-            bboxes = bboxes.astype(int)
+            p_bboxes, _ = model.facedetector.get_faces(out_dectect, att_img.shape)
 
             faces = []
-            for idx, boxes in enumerate(bboxes):
+            for idx, p_boxes, t_boxes in enumerate(zip(p_bboxes, t_bboxes)):
+                if len(p_bboxes) != len(t_boxes):
+                    boxes = t_boxes
+                else:
+                    boxes = p_boxes
+
                 for box in boxes:
                     face = att_img[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
                     face = nn.functional.interpolate(face, size=(160, 160))
                     faces.append(face.squeeze())
-
-            faces = torch.stack(faces)
-
-            out = model.facerecognition(faces)
-            loss_face = loss_face_fn(out, names)
+            if len(faces) != 0:
+                faces = torch.stack(faces)
+                out = model.facerecognition(faces)
+                loss_face = loss_face_fn(out, names)
+            else: 
+                loss_face = 0
+                
             loss = loss_detect + loss_face
 
         loss.backward()

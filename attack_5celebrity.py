@@ -1,16 +1,13 @@
 import os
 import torch
-import numpy as np
-from tqdm import tqdm
 
 import argparse
 from pathlib import Path
-from threading import Thread
 from utils.log import WandbLogger
 
 from torchvision import datasets, transforms
 from torchvision.utils import save_image, make_grid
-from models.FaceRecogniton import *
+from models.facemodel import *
 from attacks.functions import attack_facerecognition
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from utils.general import increment_path
