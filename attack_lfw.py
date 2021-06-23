@@ -23,7 +23,8 @@ from torchvision.utils import save_image, make_grid
 workers = 0 if os.name == 'nt' else 2
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-def attack_5celebrity(opt):
+def attack_lfw(opt):
+    logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw", None, opt) if opt.log_wandb else None
     save_dir = str(increment_path(Path(opt.save_dir), exist_ok=False))  # increment run
 
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
@@ -32,12 +33,16 @@ def attack_5celebrity(opt):
 
     for image, target, path in tqdm(dataloader):
         image = image.to(device)
-        att_img = attack_faceverification(faceverification, image, None, opt)
+        att_img = attack_faceverification(faceverification, image, logger, opt)
 
         for _att_img, _path in zip(att_img, path): 
             save_path = _path.replace(opt.data, save_dir)
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             save_image(_att_img, save_path)
+
+        if opt.log_wandb:
+            logger.log({"sample": logger.wandb.Image(_att_img[0], caption=path[0])})
+            logger.end_epoch()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_lfw.py')
@@ -52,7 +57,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=32, help='batch size dataloader')
 
     parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
+    parser.add_argument('--log-wandb', action='store_true', help='Log something in wandb')
     opt = parser.parse_args()
     print(opt)
 
-    attack_5celebrity(opt)
+    attack_lfw(opt)
