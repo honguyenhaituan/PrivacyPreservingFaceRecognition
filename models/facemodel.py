@@ -19,6 +19,10 @@ class FaceVerification(nn.Module):
                 face = image[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
                 face = nn.functional.interpolate(face, size=(160, 160))
                 faces.append(face.squeeze())
+            if len(boxes) == 0:
+                face = image[idx:idx + 1]
+                face = nn.functional.interpolate(face, size=(160, 160))
+                faces.append(face.squeeze())
 
         if len(faces) != 0:
             faces = torch.stack(faces)
