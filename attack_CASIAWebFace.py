@@ -30,15 +30,17 @@ def attack_CASIAWebFace(opt):
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
     facerecognition = facerecognition_retinaface_facenet(pretrained='casia-webface').eval().to(device)
 
-    pred, label = [], []
+    preds_att, preds_img, label = [], [], []
     for image, target, paths in tqdm(dataloader):
         image = image.to(device)
+        _, pred_img = facerecognition(image)
+
         att_img, (delta_blur, delta_att) = attack_facerecognition(facerecognition, image, logger, opt, delta=True)
-        (bboxes, _), name = facerecognition(att_img)
+        (bboxes, _), pred_att = facerecognition(att_img)
 
         if opt.save_attack_image: 
             logger_attack_img = []
-            for _img, _target, _bboxes, _name, path in zip(att_img, target, bboxes, [name], paths):
+            for _img, _target, _bboxes, _name, path in zip(att_img, target, bboxes, pred_att, paths):
                 save_path = path.replace(opt.data, save_image_dir)
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
                 save_image(_img, save_path)
@@ -64,20 +66,20 @@ def attack_CASIAWebFace(opt):
 
             logger.log({"Comapare image": logger_compare_img})
 
-        pred.extend(name.to('cpu').numpy())
+        preds_att.extend(pred_att.to('cpu').numpy())
+        preds_img.extend(pred_img.to('cpu').numpy())
         label.extend(target.numpy())
 
-        acc = accuracy_score(label, pred)
-        f1 = f1_score(label, pred, average="micro")
-        p = precision_score(label, pred, average="micro")
-        r = recall_score(label, pred, average="micro")
-        print(acc, f1, p, r)
+        acc_att = accuracy_score(label, preds_att)
+        acc_pred = accuracy_score(label, preds_att)
+        acc_att_pred = accuracy_score(preds_img, preds_att)
+        print("ACC att, pred, att_pred: ", acc_att, acc_pred, acc_att_pred)
         
         if opt.log_wandb:
-            logger.log({"metrics/accuracy": accuracy_score(label, pred)})
-            logger.log({"metrics/f1": f1_score(label, pred, average="micro")})
-            logger.log({"metrics/precision": precision_score(label, pred, average="micro")})
-            logger.log({"metrics/recall": recall_score(label, pred, average="micro")})
+            logger.log({"metrics/accuracy": accuracy_score(label, preds_att)})
+            logger.log({"metrics/f1": f1_score(label, preds_att, average="micro")})
+            logger.log({"metrics/precision": precision_score(label, preds_att, average="micro")})
+            logger.log({"metrics/recall": recall_score(label, preds_att, average="micro")})
             logger.end_epoch()
 
     if logger: logger.finish_run()
