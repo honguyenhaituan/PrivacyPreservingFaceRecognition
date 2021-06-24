@@ -4,6 +4,7 @@ import torch
 import argparse
 from pathlib import Path
 from utils.log import WandbLogger
+from tqdm import tqdm
 
 from models.facemodel import *
 from attacks.functions import attack_facerecognition
@@ -30,7 +31,7 @@ def attack_CASIAWebFace(opt):
     facerecognition = facerecognition_retinaface_facenet(pretrained='casia-webface').eval().to(device)
 
     pred, label = [], []
-    for image, target, paths in dataloader:
+    for image, target, paths in tqdm(dataloader):
         image = image.to(device)
         att_img, (delta_blur, delta_att) = attack_facerecognition(facerecognition, image, logger, opt, delta=True)
         (bboxes, _), name = facerecognition(att_img)
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--type-blur', type=int, default=2, help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
     parser.add_argument('--kernel-blur', type=int, default=9, help='Kernel of algorithm blur')
 
-    parser.add_argument('--data', type=str, default='./data/CASIA-WebFace', help='dataset')
+    parser.add_argument('--data', type=str, default='./data/CASIA-WebFace-mini', help='dataset')
     parser.add_argument('--batch-size', type=int, default=1, help='batch size dataloader')
     
     parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
