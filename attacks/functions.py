@@ -9,7 +9,7 @@ from utils.image import blur_bboxes
 from utils.metrics import psnr, cosine
 from models.facemodel import FaceRecognition, FaceVerification
 
-from .FGSM import get_method_attack
+from .optim import get_optim
 from .loss import DetectionLoss
 
 @torch.no_grad()
@@ -27,7 +27,7 @@ def _attack_face(model:FaceVerification, img, loss_face_fn, logger, opt, delta=F
     if delta: 
         blur_image = att_img.clone()
 
-    attack = get_method_attack(opt, [att_img])
+    attack = get_optim(opt, [att_img])
     loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(att_img.device)
     
     time_preprocess = time_synchronized() - t
