@@ -4,6 +4,8 @@ import glob
 import re
 from pathlib import Path
 
+from torch.functional import Tensor
+
 def bboxes2masks(bboxes, shape, reduce=0):
     if reduce > 1 or reduce < 0:
         raise ValueError("Reduce must be in 0 to 1")
@@ -29,6 +31,17 @@ def predict2target(bboxes, landmarks, width, height, device):
         target.append(_target)
 
     return target
+
+def target2bboxes(target, width, height):
+    bboxes = []
+    for _target in target: 
+        box = _target[:, :4].detach().cpu().numpy()
+        box[:, (0, 2)] *= width
+        box[:, (1, 3)] *= height
+        box = box.astype(int)
+        bboxes.append(box)
+        
+    return bboxes
     
 def time_synchronized():
     # pytorch-accurate time

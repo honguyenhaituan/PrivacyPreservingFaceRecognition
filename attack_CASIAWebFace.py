@@ -35,7 +35,8 @@ def attack_CASIAWebFace(opt):
         image = image.to(device)
         _, pred_img = facerecognition(image)
 
-        att_img, (delta_blur, delta_att) = attack_facerecognition(facerecognition, image, logger, opt, delta=True)
+        target_attack = target if opt.label_target else None
+        att_img, (delta_blur, delta_att) = attack_facerecognition(facerecognition, image, target_attack, logger, opt, delta=True)
         (bboxes, _), pred_att = facerecognition(att_img)
 
         if opt.save_attack_image: 
@@ -89,6 +90,8 @@ if __name__ == '__main__':
     parser.add_argument('--name-attack', type=str, default='I-FGSM', help='name method attack model')
     parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
+    parser.add_argument('--label-target', action='store_true', help='Use ground truth to attack model')
+
 
     parser.add_argument('--type-blur', type=int, default=2, help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
     parser.add_argument('--kernel-blur', type=int, default=9, help='Kernel of algorithm blur')
