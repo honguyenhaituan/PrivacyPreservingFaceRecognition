@@ -54,15 +54,22 @@ class MI_FGSM(I_FGSM):
         super().zero_grad()
 
 class WrapOptim: 
-    def __init__(self, params, optimizer:Optimizer):
+    @torch.no_grad()
+    def __init__(self, params, epsilon, optimizer:Optimizer):
         self.optim = optimizer
         self.params = params
+        self.epsilon = epsilon / 255
+        self.params_init = []
+        for param in params:
+            self.params_init.append(param.clone())
 
     @torch.no_grad()
     def step(self):
         self.optim.step()
-        for param in self.params:
-            param = torch.clamp(param, 0, 1)
+        for param, param_init in zip(self.params, self.params_init):
+            update = param - param_init
+            update = torch.clamp(update, -self.epsilon, self.epsilon)
+            param = torch.clamp(param_init + update, 0, 1)
     
     def zero_grad(self):
         self.optim.zero_grad()
@@ -82,6 +89,6 @@ def get_optim(opt, params) -> I_FGSM:
         optimizer = RMSprop(params)
 
     if optimizer:
-        return WrapOptim(params, optimizer)
+        return WrapOptim(params, opt.epsilon, optimizer)
 
     return None
