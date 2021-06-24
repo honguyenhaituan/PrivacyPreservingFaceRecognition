@@ -27,7 +27,7 @@ def attack_CASIAWebFace(opt):
     
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
-    facerecognition = faceverification_retinaface_facenet(pretrained='casia-webface').eval().to(device)
+    facerecognition = facerecognition_retinaface_facenet(pretrained='casia-webface').eval().to(device)
 
     pred, label = [], []
     for image, target, paths in dataloader:
@@ -66,13 +66,20 @@ def attack_CASIAWebFace(opt):
         pred.extend(name.to('cpu').numpy())
         label.extend(target.numpy())
 
-        logger.log({"metrics/accuracy": accuracy_score(label, pred)})
-        logger.log({"metrics/f1": f1_score(label, pred, average="micro")})
-        logger.log({"metrics/precision": precision_score(label, pred, average="micro")})
-        logger.log({"metrics/recall": recall_score(label, pred, average="micro")})
-        logger.end_epoch()
+        acc = accuracy_score(label, pred)
+        f1 = f1_score(label, pred, average="micro")
+        p = precision_score(label, pred, average="micro")
+        r = recall_score(label, pred, average="micro")
+        print(acc, f1, p, r)
+        
+        if opt.log_wandb:
+            logger.log({"metrics/accuracy": accuracy_score(label, pred)})
+            logger.log({"metrics/f1": f1_score(label, pred, average="micro")})
+            logger.log({"metrics/precision": precision_score(label, pred, average="micro")})
+            logger.log({"metrics/recall": recall_score(label, pred, average="micro")})
+            logger.end_epoch()
 
-    logger.finish_run()
+    if logger: logger.finish_run()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_CASIAWebFace.py')

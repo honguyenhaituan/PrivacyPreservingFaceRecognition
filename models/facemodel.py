@@ -38,7 +38,7 @@ class FaceRecognition(FaceVerification):
 
 def facerecognition_retinaface_facenet(pretrained='vggface2', num_classes=None):
     retinaface = retinaface_mnet(pretrained=True)
-    facenet = FaceNet(pretrained=pretrained, num_classes=num_classes)
+    facenet = FaceNet(pretrained=pretrained, classify=True, num_classes=num_classes)
 
     return FaceRecognition(retinaface, facenet)
 
