@@ -70,10 +70,9 @@ class WrapOptim:
         for param, param_init in zip(self.params, self.params_init):
             total_update = param - param_init
             update = torch.clamp(total_update, -self.epsilon, self.epsilon)
-            nparam = torch.clamp(param_init + update, 0, 1)
-            nupdate = nparam - param_init
 
-            param += nupdate - total_update
+            param += update - total_update
+            param.clamp_(0, 1)
     
     def zero_grad(self):
         self.optim.zero_grad()

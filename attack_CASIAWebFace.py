@@ -55,7 +55,7 @@ def attack_CASIAWebFace(opt):
                                         "box_caption": str(cls),
                                         "domain": "pixel"} for box, cls in zip(_bboxes.tolist(), pred_att[start:start+len(_bboxes)].tolist())]
                     boxes = {"predictions": {"box_data": box_data}} #, "class_labels": class_names}}  # inference-space
-                    logger_attack_img.append(logger.wandb.Image(_img, boxes=boxes, caption="label: " + str(_target)))
+                    logger_attack_img.append(logger.wandb.Image(save_path, boxes=boxes, caption="label: " + str(_target)))
                     start += len(_bboxes)
 
             if opt.log_wandb: logger.log({"Predict image": logger_attack_img})
