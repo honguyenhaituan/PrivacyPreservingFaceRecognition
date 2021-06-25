@@ -41,19 +41,22 @@ def attack_CASIAWebFace(opt):
 
         if opt.save_attack_image: 
             logger_attack_img = []
+            start = 0
             for _img, _target, _bboxes, _name, path in zip(att_img, target, bboxes, pred_att, paths):
                 save_path = path.replace(opt.data, save_image_dir)
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
                 save_image(_img, save_path)
 
-                box_data = [{"position": {"minX": box[0], "minY": box[1], "maxX": box[2], "maxY": box[3]},
-                                    "class_id": int(cls),
-                                    "box_caption": int(cls),
-                                    "domain": "pixel"} for box, cls in zip(_bboxes.tolist(), _name.tolist())]
-                boxes = {"predictions": {"box_data": box_data}} #, "class_labels": class_names}}  # inference-space
-                logger_attack_img.append(logger.wandb.Image(_img, boxes=boxes, caption=_target))
+                if opt.log_wandb:
+                    box_data = [{"position": {"minX": box[0], "minY": box[1], "maxX": box[2], "maxY": box[3]},
+                                        "class_id": int(cls),
+                                        "box_caption": str(cls),
+                                        "domain": "pixel"} for box, cls in zip(_bboxes.tolist(), pred_att[start:start+len(_bboxes)].tolist())]
+                    boxes = {"predictions": {"box_data": box_data}} #, "class_labels": class_names}}  # inference-space
+                    logger_attack_img.append(logger.wandb.Image(_img, boxes=boxes, caption="label: " + str(_target)))
+                    start += len(_bboxes)
 
-            logger.log({"Predict image": logger_attack_img})
+            if opt.log_wandb: logger.log({"Predict image": logger_attack_img})
 
         if opt.save_compare_image:
             logger_compare_img = []
@@ -63,16 +66,16 @@ def attack_CASIAWebFace(opt):
 
                 image_compare = make_grid([_img, _delta_blur * 0.5 + 0.5, _delta_att * 0.5 + 0.5, _att_img])
                 save_image(image_compare, path)
-                logger_compare_img.append(logger.wandb.Image(save_path))
+                if opt.log_wandb: logger_compare_img.append(logger.wandb.Image(save_path))
 
-            logger.log({"Comapare image": logger_compare_img})
+            if opt.log_wandb: logger.log({"Comapare image": logger_compare_img})
 
         preds_att.extend(pred_att.to('cpu').numpy())
         preds_img.extend(pred_img.to('cpu').numpy())
         label.extend(target.numpy())
 
         acc_att = accuracy_score(label, preds_att)
-        acc_pred = accuracy_score(label, preds_att)
+        acc_pred = accuracy_score(label, preds_img)
         acc_att_pred = accuracy_score(preds_img, preds_att)
         print("ACC att, pred, att_pred: ", acc_att, acc_pred, acc_att_pred)
         

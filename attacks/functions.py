@@ -1,3 +1,4 @@
+from os import name
 from utils.log import WandbLogger
 import torch
 import torch.nn as nn
@@ -20,7 +21,8 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
     t_bboxes = target2bboxes(bboxes_target, img.shape[-2], img.shape[-1])
     optim = get_optim(opt, [att_img])
 
-    for _ in range(opt.max_iter):
+    best_loss = float('inf')
+    for _ in range(25):
         optim.zero_grad()
         with torch.set_grad_enabled(True):
             out_dectect = model.facedetector(att_img)
@@ -40,20 +42,21 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
                     face = nn.functional.interpolate(face, size=(160, 160))
                     faces.append(face.squeeze())
 
-            if len(faces) != 0:
-                faces = torch.stack(faces)
-                out = model.facerecognition(faces)
-                loss_face = loss_face_fn(out, faces_target)
-            else: 
-                loss_face = 0
-                
+            
+            faces = torch.stack(faces)
+            out = model.facerecognition(faces)
+            loss_face = loss_face_fn(out, faces_target)
+            if loss_face.item() < best_loss: 
+                best_loss = loss_face.item()
+                result = att_img.clone()
+
             loss = loss_detect + loss_face
 
         loss.backward()
         att_img.grad[mask] = 0
         optim.step()
     
-    return att_img
+    return result
 
 @torch.no_grad()
 def attack_face(model, img, target, loss_detect_fn, loss_face_fn, logger, opt, delta=False):
@@ -62,9 +65,13 @@ def attack_face(model, img, target, loss_detect_fn, loss_face_fn, logger, opt, d
 
     height, width = img.shape[-2:]
     bboxes_target = predict2target(t_bboxes, t_landmarks, width, height, img.device)
-    faces_target = target if target else names
+    if target is None:
+        faces_target = names
+    else:
+        faces_target = target
+    # faces_target = target if target else names
 
-    mask = bboxes2masks(t_bboxes, img.shape, 0.2)
+    mask = bboxes2masks(t_bboxes, img.shape, 0.05)
     blur_img = blur_bboxes(img, t_bboxes, opt.kernel_blur, opt.type_blur)
     
     time_preprocess = time_synchronized() - t

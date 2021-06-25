@@ -79,6 +79,8 @@ def get_optim(opt, params) -> I_FGSM:
         return I_FGSM(params, opt.epsilon)
     if opt.name_attack == 'MI-FGSM':
         return MI_FGSM(params, opt.epsilon, opt.momentum)
+
+    optimizer = None
     if opt.name_attack == 'SGD':
         optimizer = SGD(params, lr=0.01, momentum=0.9)
     if opt.name_attack == 'Adam':

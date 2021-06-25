@@ -24,9 +24,8 @@ class FaceVerification(nn.Module):
                 face = nn.functional.interpolate(face, size=(160, 160))
                 faces.append(face.squeeze())
 
-        if len(faces) != 0:
-            faces = torch.stack(faces)
-            out = self.facerecognition(faces)
+        faces = torch.stack(faces)
+        out = self.facerecognition(faces)
 
         return (bboxes, landmarks), out
 
