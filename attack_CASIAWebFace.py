@@ -65,7 +65,7 @@ def attack_CASIAWebFace(opt):
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
                 image_compare = make_grid([_img, _delta_blur * 0.5 + 0.5, _delta_att * 0.5 + 0.5, _att_img])
-                save_image(image_compare, path)
+                save_image(image_compare, save_path)
                 if opt.log_wandb: logger_compare_img.append(logger.wandb.Image(save_path))
 
             if opt.log_wandb: logger.log({"Comapare image": logger_compare_img})
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', type=str, default='./data/CASIA-WebFace-mini', help='dataset')
     parser.add_argument('--batch-size', type=int, default=1, help='batch size dataloader')
     
-    parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
+    parser.add_argument('--save-dir', type=str, default='./data/CASIA-WebFace-mini-attack', help='Dir save all result')
     parser.add_argument('--save-attack-image', action='store_true', help='Save image file after attack')    
     parser.add_argument('--save-compare-image', action='store_true', help='Save original, delta and attack image')    
         

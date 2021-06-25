@@ -33,7 +33,7 @@ def attack_lfw(opt):
 
     for image, target, path in tqdm(dataloader):
         image = image.to(device)
-        att_img = attack_faceverification(faceverification, image, logger, opt)
+        att_img = attack_faceverification(faceverification, image, None, logger, opt)
 
         for _att_img, _path in zip(att_img, path): 
             save_path = _path.replace(opt.data, save_dir)
@@ -47,6 +47,7 @@ def attack_lfw(opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_lfw.py')
     parser.add_argument('--name-attack', type=str, default='I-FGSM', help='name method attack model')
+    parser.add_argument('--max_iter', type=int, default=25, help='Max iter loop to process attack')
     parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
 
