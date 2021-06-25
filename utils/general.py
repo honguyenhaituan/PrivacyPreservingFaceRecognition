@@ -16,6 +16,8 @@ def bboxes2masks(bboxes, shape, reduce=0):
             height, width = box[3] - box[1], box[2] - box[0]
             sh, sw = int(height * reduce / 2), int(width * reduce / 2)
             mask[:, box[1] + sh:box[3] - sh, box[0] + sw:box[2] - sw] = 0
+        if len(boxes) == 0:
+            mask[:] = 0
 
     return masks
 
@@ -24,6 +26,7 @@ def predict2target(bboxes, landmarks, width, height, device):
     for box, landmark in zip(bboxes, landmarks):
         if box.shape[-1] != 5:
             box = torch.Tensor([[0, 0, width, height, 1]]).to(box.device)
+            landmark = torch.zeros(1, 10)
             
         _target = torch.cat((box[:, :-1], landmark, box[:, -1:]), dim=-1)
         _target = _target.float().to(device)
