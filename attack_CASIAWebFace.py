@@ -3,6 +3,8 @@ import torch
 
 import argparse
 from pathlib import Path
+
+import wandb
 from utils.log import WandbLogger
 from tqdm import tqdm
 
@@ -47,7 +49,7 @@ def attack_CASIAWebFace(opt):
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
                 save_image(_img, save_path)
 
-                if opt.log_wandb:
+                if opt.log_wandb and len(logger_attack_img) < 2:
                     box_data = [{"position": {"minX": box[0], "minY": box[1], "maxX": box[2], "maxY": box[3]},
                                         "class_id": int(cls),
                                         "box_caption": str(cls),
@@ -66,7 +68,8 @@ def attack_CASIAWebFace(opt):
 
                 image_compare = make_grid([_img, _delta_blur * 0.5 + 0.5, _delta_att * 0.5 + 0.5, _att_img])
                 save_image(image_compare, save_path)
-                if opt.log_wandb: logger_compare_img.append(logger.wandb.Image(save_path))
+                if opt.log_wandb and len(logger_compare_img) < 2: 
+                    logger_compare_img.append(logger.wandb.Image(save_path))
 
             if opt.log_wandb: logger.log({"Comapare image": logger_compare_img})
 
@@ -86,13 +89,17 @@ def attack_CASIAWebFace(opt):
             logger.log({"metrics/recall": recall_score(label, preds_att, average="micro")})
             logger.end_epoch()
 
-    if logger: logger.finish_run()
+    if logger: 
+        data = [[p, l] for p, l in zip(preds_att, label)]
+        table = logger.wandb.Table(["predict att", "label"], data)
+        logger.log({"preds_att": table})
+        logger.finish_run()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_CASIAWebFace.py')
     parser.add_argument('--name-attack', type=str, default='I-FGSM', help='name method attack model')
-    parser.add_argument('--max_iter', type=int, default=25, help='Max iter loop to process attack')
-    parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
+    parser.add_argument('--max_iter', type=int, default=20, help='Max iter loop to process attack')
+    parser.add_argument('--epsilon', type=float, default=15, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
     parser.add_argument('--label-target', action='store_true', help='Use ground truth to attack model')
 
