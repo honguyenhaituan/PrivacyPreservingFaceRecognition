@@ -35,7 +35,7 @@ def attack_CASIAWebFace(opt):
         image = image.to(device)
         _, pred_img = facerecognition(image)
 
-        target_attack = target if opt.label_target else None
+        target_attack = target.to(device) if opt.label_target else None
         att_img, (delta_blur, delta_att) = attack_facerecognition(facerecognition, image, target_attack, logger, opt, delta=True)
         (bboxes, _), pred_att = facerecognition(att_img)
 

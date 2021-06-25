@@ -35,6 +35,10 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
                     face = att_img[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
                     face = nn.functional.interpolate(face, size=(160, 160))
                     faces.append(face.squeeze())
+                if len(boxes) == 0:
+                    face = att_img[idx:idx + 1]
+                    face = nn.functional.interpolate(face, size=(160, 160))
+                    faces.append(face.squeeze())
 
             if len(faces) != 0:
                 faces = torch.stack(faces)

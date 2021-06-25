@@ -22,6 +22,9 @@ def bboxes2masks(bboxes, shape, reduce=0):
 def predict2target(bboxes, landmarks, width, height, device):
     target = []
     for box, landmark in zip(bboxes, landmarks):
+        if box.shape[-1] != 5:
+            box = torch.Tensor([[0, 0, width, height, 1]]).to(box.device)
+            
         _target = torch.cat((box[:, :-1], landmark, box[:, -1:]), dim=-1)
         _target = _target.float().to(device)
         _target[:, -1] = 1
