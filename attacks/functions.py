@@ -20,7 +20,7 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
     t_bboxes = target2bboxes(bboxes_target, img.shape[-2], img.shape[-1])
     optim = get_optim(opt, [att_img])
 
-    for _ in range(25):
+    for _ in range(opt.max_iter):
         optim.zero_grad()
         with torch.set_grad_enabled(True):
             out_dectect = model.facedetector(att_img)

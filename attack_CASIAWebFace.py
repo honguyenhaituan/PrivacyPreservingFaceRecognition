@@ -88,6 +88,7 @@ def attack_CASIAWebFace(opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='attack_CASIAWebFace.py')
     parser.add_argument('--name-attack', type=str, default='I-FGSM', help='name method attack model')
+    parser.add_argument('--max_iter', type=int, default=25, help='Max iter loop to process attack')
     parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
     parser.add_argument('--label-target', action='store_true', help='Use ground truth to attack model')
