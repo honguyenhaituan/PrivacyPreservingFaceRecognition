@@ -1,5 +1,6 @@
+import operator
 import torch
-from torch.optim import SGD, Adam, Adagrad, RMSprop
+from torch.optim import Adadelta, Adagrad, Adam, AdamW, SparseAdam, Adamax, ASGD, LBFGS, RMSprop, Rprop, SGD
 from torch.optim.optimizer import Optimizer
 
 class I_FGSM: 
@@ -81,15 +82,29 @@ def get_optim(opt, params) -> I_FGSM:
         return MI_FGSM(params, opt.epsilon, opt.momentum)
 
     optimizer = None
-    if opt.name_attack == 'SGD':
-        optimizer = SGD(params, lr=0.01, momentum=0.9)
-    if opt.name_attack == 'Adam':
-        optimizer = Adam(params)
+    if opt.name_attack == 'Adadelta':
+        optimizer = Adadelta(params)
     if opt.name_attack == 'Adagrad':
         optimizer = Adagrad(params)
+    if opt.name_attack == 'Adam':
+        optimizer = Adam(params)
+    if opt.name_attack == 'AdamW':
+        optimizer = AdamW(params)
+    if opt.name_attack == 'SparseAdam':
+        optimizer = SparseAdam(params)
+    if opt.name_attack == 'Adamax':
+        optimizer = Adamax(params)
+    if opt.name_attack == 'ASGD':
+        optimizer = ASGD(params)
+    if opt.name_attack == 'LBFGS':
+        optimizer = LBFGS(params)
     if opt.name_attack == 'RMSprop':
         optimizer = RMSprop(params)
-
+    if opt.name_attack == 'Rprop':
+        optimizer = Rprop(params)
+    if opt.name_attack == 'SGD':
+        optimizer = SGD(params, lr=0.1, momentum=opt.momentum)
+    
     if optimizer:
         return WrapOptim(params, opt.epsilon, optimizer)
 
