@@ -1,7 +1,5 @@
 import os
 import torch
-import numpy as np
-from torch.utils import data
 from tqdm import tqdm
 
 import argparse
@@ -11,13 +9,13 @@ from utils.log import WandbLogger
 
 from models.facemodel import *
 from attacks.functions import attack_faceverification
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from utils.general import increment_path
+from utils.metrics import distance
 
 from utils.data import ImageFolderWithPaths
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from torchvision.utils import save_image, make_grid
+from torchvision.utils import save_image
 
 
 workers = 0 if os.name == 'nt' else 2
@@ -30,7 +28,8 @@ def attack_lfw(opt):
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
     faceverification = faceverification_retinaface_facenet().eval().to(device)
-
+    
+    total_distance = 0
     for image, target, path in tqdm(dataloader):
         image = image.to(device)
         att_img = attack_faceverification(faceverification, image, None, logger, opt)
@@ -40,7 +39,18 @@ def attack_lfw(opt):
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             save_image(_att_img, save_path)
 
+        embedded1 = faceverification(image).cpu().numpy()
+        embedded2 = faceverification(att_img).cpu().numpy()
+        dist = distance(embedded1, embedded2)
+        print(dist)
+
         if opt.log_wandb:
+            data = [[p, d] for p, d in (path, dist)]
+            table = logger.wandb.Table(["path", "distance"], data)
+            logger.log({"distance", table})
+
+            total_distance += np.sum(dist)
+            logger.log({"total_distance:", total_distance})
             logger.log({"sample": logger.wandb.Image(att_img[0], caption=path[0])})
             logger.end_epoch()
 
