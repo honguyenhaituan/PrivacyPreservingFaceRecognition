@@ -22,7 +22,7 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
     optim = get_optim(opt, [att_img])
 
     best_loss = float('inf')
-    for _ in range(25):
+    for _ in range(opt.max_iter):
         optim.zero_grad()
         with torch.set_grad_enabled(True):
             out_dectect = model.facedetector(att_img)
@@ -82,7 +82,7 @@ def attack_face(model, img, target, loss_detect_fn, loss_face_fn, logger, opt, d
     
     logger.increase_log({"time/attack": time_synchronized() - t}) if logger else None
 
-    return att_img, (blur_img - img, att_img - blur_img) if delta else att_img    
+    return (att_img, (blur_img - img, att_img - blur_img)) if delta else att_img    
 
 @torch.no_grad()
 def attack_facerecognition(model:FaceRecognition, img, target, logger:WandbLogger, opt, delta=False):

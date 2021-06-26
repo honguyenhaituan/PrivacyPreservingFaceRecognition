@@ -21,6 +21,7 @@ from torchvision.utils import save_image
 workers = 0 if os.name == 'nt' else 2
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+@torch.no_grad()
 def attack_lfw(opt):
     logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw", None, opt) if opt.log_wandb else None
     save_dir = str(increment_path(Path(opt.save_dir), exist_ok=False))  # increment run
@@ -39,18 +40,19 @@ def attack_lfw(opt):
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             save_image(_att_img, save_path)
 
-        embedded1 = faceverification(image).cpu().numpy()
-        embedded2 = faceverification(att_img).cpu().numpy()
-        dist = distance(embedded1, embedded2)
+        _, embedded1 = faceverification(image)
+        _, embedded2 = faceverification(att_img)
+
+        dist = distance(embedded1.cpu().numpy(), embedded2.cpu().numpy())
         print(dist)
 
         if opt.log_wandb:
-            data = [[p, d] for p, d in (path, dist)]
+            data = [[p, d] for p, d in zip(path, dist)]
             table = logger.wandb.Table(["path", "distance"], data)
-            logger.log({"distance", table})
+            logger.log({"distance": table})
 
             total_distance += np.sum(dist)
-            logger.log({"total_distance:", total_distance})
+            logger.log({"total_distance:": total_distance})
             logger.log({"sample": logger.wandb.Image(att_img[0], caption=path[0])})
             logger.end_epoch()
 
