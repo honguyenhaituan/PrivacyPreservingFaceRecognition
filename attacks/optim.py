@@ -1,6 +1,6 @@
 import operator
 import torch
-from torch.optim import Adadelta, Adagrad, Adam, AdamW, SparseAdam, Adamax, ASGD, LBFGS, RMSprop, Rprop, SGD
+from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, RMSprop, Rprop, SGD
 from torch.optim.optimizer import Optimizer
 
 class I_FGSM: 
@@ -92,14 +92,10 @@ def get_optim(opt, params) -> I_FGSM:
         optimizer = Adam(params)
     if opt.name_attack == 'AdamW':
         optimizer = AdamW(params)
-    if opt.name_attack == 'SparseAdam':
-        optimizer = SparseAdam(params)
     if opt.name_attack == 'Adamax':
         optimizer = Adamax(params)
     if opt.name_attack == 'ASGD':
         optimizer = ASGD(params)
-    if opt.name_attack == 'LBFGS':
-        optimizer = LBFGS(params)
     if opt.name_attack == 'RMSprop':
         optimizer = RMSprop(params)
     if opt.name_attack == 'Rprop':
