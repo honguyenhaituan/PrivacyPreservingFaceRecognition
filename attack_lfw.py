@@ -30,7 +30,6 @@ def attack_lfw(opt):
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
     faceverification = faceverification_retinaface_facenet().eval().to(device)
     
-    total_distance = 0
     for image, target, path in tqdm(dataloader):
         image = image.to(device)
         att_img = attack_faceverification(faceverification, image, None, logger, opt)
@@ -51,8 +50,7 @@ def attack_lfw(opt):
             table = logger.wandb.Table(["path", "distance"], data)
             logger.log({"distance": table})
 
-            total_distance += np.sum(dist)
-            logger.log({"total_distance:": total_distance})
+            logger.log({"average distance:": np.average(dist)})
             logger.log({"sample": logger.wandb.Image(att_img[0], caption=path[0])})
             logger.end_epoch()
 

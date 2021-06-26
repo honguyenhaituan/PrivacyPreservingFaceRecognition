@@ -97,7 +97,7 @@ def get_optim(opt, params) -> I_FGSM:
     if opt.name_attack == 'ASGD':
         optimizer = ASGD(params)
     if opt.name_attack == 'RMSprop':
-        optimizer = RMSprop(params)
+        optimizer = RMSprop(params, lr=0.004)
     if opt.name_attack == 'Rprop':
         optimizer = Rprop(params)
     if opt.name_attack == 'SGD':
