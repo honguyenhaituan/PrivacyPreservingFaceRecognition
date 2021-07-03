@@ -5,14 +5,22 @@ from .retinaface.models.retinaface import retinaface_mnet
 from .facenet import FaceNet
 
 class FaceVerification(nn.Module):
-    def __init__(self, facedetector, facerecognition):
+    def __init__(self, detector, extractor):
         super(FaceVerification, self).__init__()
-        self.facedetector = facedetector
-        self.facerecognition = facerecognition
+        self.detector = detector
+        self.extactor = extractor
 
     def forward(self, image): 
-        bboxes, landmarks = self.facedetector.detect_faces(image)
+        bboxes, landmarks = self.detector.detect(image)
+        out = self.embedding(image, bboxes)
 
+        return (bboxes, landmarks), out
+
+    def detect(self, image, landmarks=False):
+        _bboxes, _landmarks = self.facedetector.detect(image)
+        return (_bboxes, _landmarks) if landmarks else _bboxes
+
+    def embedding(self, image, bboxes):
         faces = []
         for idx, boxes in enumerate(bboxes):
             for box in boxes:
@@ -25,9 +33,7 @@ class FaceVerification(nn.Module):
                 faces.append(face.squeeze())
 
         faces = torch.stack(faces)
-        out = self.facerecognition(faces)
-
-        return (bboxes, landmarks), out
+        return self.extactor(faces)
 
 class FaceRecognition(FaceVerification):
     def forward(self, image):

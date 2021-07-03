@@ -14,7 +14,7 @@ from .optim import get_optim
 from .loss import DetectionLoss
 
 @torch.no_grad()
-def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, loss_face_fn, opt):
+def _attack_face(model: FaceVerification, img, bboxes_target, faces_target, mask, loss_detect_fn, loss_emb_fn, opt):
     att_img = img.clone()
     att_img.requires_grad = True
 
@@ -25,32 +25,22 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
     for _ in range(opt.max_iter):
         optim.zero_grad()
         with torch.set_grad_enabled(True):
-            out_dectect = model.facedetector(att_img)
+            out_dectect = model.detector(att_img)
             loss_detect = loss_detect_fn(out_dectect, bboxes_target)
-            p_bboxes, _ = model.facedetector.get_faces(out_dectect, att_img.shape)
+            p_bboxes, _ = model.detector.select_boxes(out_dectect, att_img.shape)
 
-            faces = []
-            for idx, (p_boxes, t_boxes) in enumerate(zip(p_bboxes, t_bboxes)):
+            bboxes = []
+            for p_boxes, t_boxes in zip(p_bboxes, t_bboxes):
                 boxes = t_boxes if len(p_boxes) != len(t_boxes) else p_boxes
+                bboxes.append(boxes)
 
-                for box in boxes:
-                    face = att_img[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
-                    face = nn.functional.interpolate(face, size=(160, 160))
-                    faces.append(face.squeeze())
-                if len(boxes) == 0:
-                    face = att_img[idx:idx + 1]
-                    face = nn.functional.interpolate(face, size=(160, 160))
-                    faces.append(face.squeeze())
-
-            
-            faces = torch.stack(faces)
-            out = model.facerecognition(faces)
-            loss_face = loss_face_fn(out, faces_target)
-            if loss_face.item() < best_loss: 
-                best_loss = loss_face.item()
+            out = model.embedding(att_img, bboxes)
+            loss_emb = loss_emb_fn(out, faces_target)
+            if loss_emb.item() < best_loss: 
+                best_loss = loss_emb.item()
                 result = att_img.clone()
 
-            loss = loss_detect + loss_face
+            loss = loss_detect + loss_emb
 
         loss.backward()
         att_img.grad[mask] = 0
@@ -59,7 +49,7 @@ def _attack_face(model, img, bboxes_target, faces_target, mask, loss_detect_fn, 
     return result
 
 @torch.no_grad()
-def attack_face(model, img, target, loss_detect_fn, loss_face_fn, logger, opt, delta=False):
+def attack_face(model, img, target, loss_detect_fn, loss_emb_fn, logger, opt, delta=False):
     t = time_synchronized()
     (t_bboxes, t_landmarks), names = model(img)
 
@@ -78,7 +68,7 @@ def attack_face(model, img, target, loss_detect_fn, loss_face_fn, logger, opt, d
     logger.increase_log({"time/preprocess": time_preprocess}) if logger else None
 
     t = time_synchronized()
-    att_img = _attack_face(model, blur_img, bboxes_target, faces_target, mask, loss_detect_fn, loss_face_fn, opt)
+    att_img = _attack_face(model, blur_img, bboxes_target, faces_target, mask, loss_detect_fn, loss_emb_fn, opt)
     
     logger.increase_log({"time/attack": time_synchronized() - t}) if logger else None
 

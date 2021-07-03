@@ -198,7 +198,7 @@ class RetinaFace(nn.Module):
         return dets, landms
 
     @torch.no_grad()
-    def get_faces(self, out, img_shape):
+    def select_boxes(self, out, img_shape):
         bboxes, confs, lands = out
         r_dets, r_landms = [], []
         for loc, conf, land in zip(bboxes, confs, lands):
@@ -223,9 +223,9 @@ class RetinaFace(nn.Module):
         return r_dets, r_landms
 
     @torch.no_grad()
-    def detect_faces(self, img):
+    def detect(self, img):
         out = self.forward(img)
-        return self.get_faces(out, img.shape)
+        return self.select_boxes(out, img.shape)
         
 def retinaface_mnet(pretrained=False):
     model = RetinaFace(cfg_mnet)
