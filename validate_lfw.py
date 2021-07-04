@@ -44,7 +44,7 @@ def attack_lfw(opt):
         embedded = embedded.to('cpu').numpy()
 
         if opt.flip:
-            image_flip = torch.flip(image, -1)
+            image_flip = torch.flip(image, [-1])
             _, embedded_flip = faceverification(image_flip)
             embedded_flip = embedded_flip.to('cpu').numpy()
             embedded += embedded_flip
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-dir', type=str, default='./results', help='Dir save all result')
     parser.add_argument('--log-wandb', action='store_true', help='Log something in wandb')
 
-    parser.add_argument('--dectector', type=str, default='retinaface', help='Name detector detect face')
+    parser.add_argument('--detector', type=str, default='retinaface', help='Name detector detect face')
     parser.add_argument('--extractor', type=str, default='facenet', help='Name extractor extract feature face')
 
     parser.add_argument('--distance_metric', type=int, help='Distance metric  0:euclidian, 1:cosine similarity.', default=0)

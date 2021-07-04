@@ -1,11 +1,11 @@
-from torch.nn import nn 
+import torch.nn as nn
 from facenet_pytorch import MTCNN, training
 from .retinaface.models.retinaface import retinaface_mnet
 
 from typing import Tuple, List
 
 
-class Detector(nn.Moudule):
+class Detector(nn.Module):
     def detect(self, inputs, isOut=False) -> Tuple[List, List]:
         pass
 
