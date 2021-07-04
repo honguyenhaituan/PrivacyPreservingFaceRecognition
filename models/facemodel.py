@@ -21,12 +21,18 @@ class FaceVerification(nn.Module):
         faces = []
         for idx, boxes in enumerate(bboxes):
             for box in boxes:
-                face = image[idx:idx + 1, :, box[1]:box[3], box[0]:box[2]]
-                face = nn.functional.interpolate(face, size=self.extactor.input_size)
+                margin = self.extactor.margin
+                b = max(0, box[1] - margin)
+                t = min(box[3] + margin, image.shape[2])
+                l = max(0, box[0] - margin)
+                r = min(box[2] + margin, image.shape[3])
+
+                face = image[idx:idx + 1, :, b:t, l:r]
+                face = nn.functional.interpolate(face, size=self.extactor.input_size, mode='bilinear')
                 faces.append(face.squeeze())
             if len(boxes) == 0:
                 face = image[idx:idx + 1]
-                face = nn.functional.interpolate(face, size=self.extactor.input_size)
+                face = nn.functional.interpolate(face, size=self.extactor.input_size, mode='bilinear')
                 faces.append(face.squeeze())
 
         faces = torch.stack(faces)

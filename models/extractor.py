@@ -13,6 +13,7 @@ class Extractor(nn.Module):
         self.model = model
         self.input_size = input_size
         self.transform = transform
+        self.margin = 20
 
     def forward(self, image):
         image = self.transform(image)
