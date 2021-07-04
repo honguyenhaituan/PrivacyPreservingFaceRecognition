@@ -44,6 +44,16 @@ def CosFaceExtractor(backbone='r18'):
     cosface.load_state_dict(state_dict)
     return Extractor(cosface, (112, 112), fixed_image_standardization)
 
+def get_extractor(name):
+    if name == 'facenet':
+        return FaceNetExtractor()
+    elif name == 'arcface':
+        return ArcFaceExtractor()
+    elif name == 'cosface':
+        return CosFaceExtractor()
+    else:
+        raise ValueError("Name extractor dont support")
+
 class FaceNet(InceptionResnetV1):
     def forward(self, x):
         x = fixed_image_standardization(x)

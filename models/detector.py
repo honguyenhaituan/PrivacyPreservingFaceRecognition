@@ -49,3 +49,11 @@ class MTCNNDetector(Detector):
             )
 
         return batch_boxes, batch_points
+
+def get_detector(name):
+    if name == 'retinaface':
+        return RetinaFaceDetector()
+    elif name == 'mtcnn':
+        return MTCNNDetector()
+    else:
+        raise ValueError("Name detector dont support")
