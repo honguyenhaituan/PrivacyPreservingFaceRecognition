@@ -1,11 +1,11 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from .retinaface.models.retinaface import retinaface_mnet
+from .detector import Detector, RetinaFaceDetector
 from .facenet import FaceNet
 
 class FaceVerification(nn.Module):
-    def __init__(self, detector, extractor):
+    def __init__(self, detector: Detector, extractor):
         super(FaceVerification, self).__init__()
         self.detector = detector
         self.extactor = extractor
@@ -15,10 +15,6 @@ class FaceVerification(nn.Module):
         out = self.embedding(image, bboxes)
 
         return (bboxes, landmarks), out
-
-    def detect(self, image, landmarks=False):
-        _bboxes, _landmarks = self.facedetector.detect(image)
-        return (_bboxes, _landmarks) if landmarks else _bboxes
 
     def embedding(self, image, bboxes):
         faces = []
@@ -42,13 +38,13 @@ class FaceRecognition(FaceVerification):
         return face, pred
 
 def facerecognition_retinaface_facenet(pretrained='vggface2', num_classes=None):
-    retinaface = retinaface_mnet(pretrained=True)
+    retinaface = RetinaFaceDetector()
     facenet = FaceNet(pretrained=pretrained, classify=True, num_classes=num_classes)
 
     return FaceRecognition(retinaface, facenet)
 
 def faceverification_retinaface_facenet(pretrained='vggface2'):
-    retinaface = retinaface_mnet(pretrained=True)
+    retinaface = RetinaFaceDetector()
     facenet = FaceNet(pretrained=pretrained)
 
     return FaceVerification(retinaface, facenet)

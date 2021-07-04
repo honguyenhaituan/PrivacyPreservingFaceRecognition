@@ -27,7 +27,7 @@ def _attack_face(model: FaceVerification, img, bboxes_target, faces_target, mask
         with torch.set_grad_enabled(True):
             out_dectect = model.detector(att_img)
             loss_detect = loss_detect_fn(out_dectect, bboxes_target)
-            p_bboxes, _ = model.detector.select_boxes(out_dectect, att_img.shape)
+            p_bboxes, _ = model.detector.detect(out_dectect, isOut=True)
 
             bboxes = []
             for p_boxes, t_boxes in zip(p_bboxes, t_bboxes):
