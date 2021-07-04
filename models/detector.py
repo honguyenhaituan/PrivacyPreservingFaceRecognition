@@ -11,7 +11,7 @@ class Detector(nn.Moudule):
 
 class RetinaFaceDetector(Detector):
     def __init__(self):
-        super(Detector).__init__()
+        super(Detector, self).__init__()
         self.retinaface = retinaface_mnet(pretrained=True)
 
     def forward(self, image):
@@ -26,7 +26,7 @@ class RetinaFaceDetector(Detector):
 
 class MTCNNDetector(Detector):
     def __init__(self):
-        super(Detector).__init__()
+        super(Detector, self).__init__()
         self.mtcnn = MTCNN()
 
     def _transform(inputs):
