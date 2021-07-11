@@ -69,6 +69,8 @@ def attack_lfw(opt):
     print('Area Under Curve (AUC): %1.3f' % auc)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     print('Equal Error Rate (EER): %1.3f' % eer)
+    print('False positive', fp)
+    print('False negative', fn)
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='validate_lfw.py')
