@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from facenet_pytorch import MTCNN, training
+import numpy as np
+from facenet_pytorch import MTCNN
 from .retinaface.models.retinaface import retinaface_mnet
 
 from typing import Tuple, List
@@ -35,6 +36,37 @@ class MTCNNDetector(Detector):
         inputs = inputs.permute(0, 2, 3, 1)
         return inputs
 
+    def select_boxes(self, all_boxes, all_probs, all_points, imgs, center_weight=2.0):
+
+        selected_boxes, selected_probs, selected_points = [], [], []
+        for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
+            
+            if boxes is None:
+                selected_boxes.append(None)
+                selected_probs.append([None])
+                selected_points.append(None)
+                continue
+            
+            box_sizes = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+            img_center = (img.shape[1] / 2, img.shape[0]/2)
+            box_centers = np.array(list(zip((boxes[:, 0] + boxes[:, 2]) / 2, (boxes[:, 1] + boxes[:, 3]) / 2)))
+            offsets = box_centers - img_center
+            offset_dist_squared = np.sum(np.power(offsets, 2.0), 1)
+            box_order = np.argsort(box_sizes - offset_dist_squared * center_weight)[::-1]
+
+            box = boxes[box_order][[0]]
+            prob = probs[box_order][[0]]
+            point = points[box_order][[0]]
+            selected_boxes.append(box)
+            selected_probs.append(prob)
+            selected_points.append(point)
+
+        selected_boxes = np.array(selected_boxes)
+        selected_probs = np.array(selected_probs)
+        selected_points = np.array(selected_points)
+
+        return selected_boxes, selected_probs, selected_points
+
     def detect(self, inputs, isOut=False):
         if isOut: 
             raise ValueError("MTCNN dont take output detect")
@@ -45,8 +77,8 @@ class MTCNNDetector(Detector):
         batch_boxes, batch_probs, batch_points = self.mtcnn.detect(inputs, landmarks=True)
         # Select faces
         if not self.mtcnn.keep_all:
-            batch_boxes, batch_probs, batch_points = self.mtcnn.select_boxes(
-                batch_boxes, batch_probs, batch_points, inputs, method=self.mtcnn.selection_method
+            batch_boxes, batch_probs, batch_points = self.select_boxes(
+                batch_boxes, batch_probs, batch_points, inputs
             )
 
         boxes, lands = [], []
