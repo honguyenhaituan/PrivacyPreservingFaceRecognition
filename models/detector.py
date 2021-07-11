@@ -15,6 +15,7 @@ class RetinaFaceDetector(Detector):
     def __init__(self):
         super(Detector, self).__init__()
         self.retinaface = retinaface_mnet(pretrained=True)
+        self.cfg = self.retinaface.cfg
 
     def forward(self, image):
         self.shape = image.shape

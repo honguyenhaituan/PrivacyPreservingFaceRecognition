@@ -76,12 +76,12 @@ def attack_face(model, img, target, loss_detect_fn, loss_emb_fn, logger, opt, de
 
 @torch.no_grad()
 def attack_facerecognition(model:FaceRecognition, img, target, logger:WandbLogger, opt, delta=False):
-    loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(img.device)
+    loss_detect_fn = DetectionLoss(model.detector.cfg, img.shape[-2:]).to(img.device)
 
     return attack_face(model, img, target, loss_detect_fn, cross_entropy, logger, opt, delta)
 
 @torch.no_grad()
 def attack_faceverification(model:FaceVerification, img, target, logger:WandbLogger, opt, delta=False):
-    loss_detect_fn = DetectionLoss(model.facedetector.cfg, img.shape[-2:]).to(img.device)
+    loss_detect_fn = DetectionLoss(model.detector.cfg, img.shape[-2:]).to(img.device)
     
     return attack_face(model, img, target, loss_detect_fn, L1Loss(reduction='sum'), logger, opt, delta)
