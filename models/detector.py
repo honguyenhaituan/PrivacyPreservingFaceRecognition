@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from facenet_pytorch import MTCNN, training
 from .retinaface.models.retinaface import retinaface_mnet
@@ -25,11 +26,11 @@ class RetinaFaceDetector(Detector):
         return self.retinaface.detect(inputs)
 
 class MTCNNDetector(Detector):
-    def __init__(self):
+    def __init__(self, device='cpu'):
         super(Detector, self).__init__()
-        self.mtcnn = MTCNN()
+        self.mtcnn = MTCNN(device=device)
 
-    def _transform(inputs):
+    def _transform(self, inputs):
         inputs = inputs * 255
         inputs = inputs.permute(0, 2, 3, 1)
         return inputs
@@ -43,17 +44,22 @@ class MTCNNDetector(Detector):
         # Detect faces
         batch_boxes, batch_probs, batch_points = self.mtcnn.detect(inputs, landmarks=True)
         # Select faces
-        if not self.keep_all:
+        if not self.mtcnn.keep_all:
             batch_boxes, batch_probs, batch_points = self.mtcnn.select_boxes(
                 batch_boxes, batch_probs, batch_points, inputs, method=self.mtcnn.selection_method
             )
 
-        return batch_boxes, batch_points
+        boxes, lands = [], []
+        for box, land in zip(batch_boxes, batch_points):
+            boxes.append(torch.from_numpy(box.astype(int)))
+            lands.append(torch.from_numpy(land))
+
+        return boxes, lands
 
 def get_detector(name):
     if name == 'retinaface':
         return RetinaFaceDetector()
     elif name == 'mtcnn':
-        return MTCNNDetector()
+        return MTCNNDetector(device='cuda')
     else:
         raise ValueError("Name detector dont support")
