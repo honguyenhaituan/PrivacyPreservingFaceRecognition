@@ -22,10 +22,15 @@ class FaceVerification(nn.Module):
         for idx, boxes in enumerate(bboxes):
             for box in boxes:
                 margin = self.extactor.margin
-                b = max(0, box[1] - margin)
-                t = min(box[3] + margin, image.shape[2])
-                l = max(0, box[0] - margin)
-                r = min(box[2] + margin, image.shape[3])
+                margin = [
+                    margin * (box[2] - box[0]) / (image.shape[3] - margin),
+                    margin * (box[3] - box[1]) / (image.shape[2] - margin),
+                ]
+
+                l = int(max(0, box[0] - margin[0] / 2))
+                r = int(min(box[2] + margin[0] / 2, image.shape[3]))
+                b = int(max(0, box[1] - margin[1] / 2))
+                t = int(min(box[3] + margin[1] / 2, image.shape[2]))
 
                 face = image[idx:idx + 1, :, b:t, l:r]
                 face = nn.functional.interpolate(face, size=self.extactor.input_size, mode='bilinear')
