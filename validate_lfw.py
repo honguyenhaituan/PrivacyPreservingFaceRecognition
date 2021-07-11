@@ -1,3 +1,4 @@
+from models.retinaface import utils
 import os
 import torch
 import numpy as np
@@ -14,6 +15,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from utils.metrics import evaluate_lfw
+from utils.log import WandbLogger
 from sklearn import metrics
 from scipy.optimize import brentq
 from scipy import interpolate
@@ -27,8 +29,8 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 @torch.no_grad()
 def attack_lfw(opt):
-    # logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw", None, opt) if opt.log_wandb else None
-    save_dir = str(increment_path(Path(opt.save_dir), exist_ok=False))  # increment run
+    logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw-evaluate", None, opt) if opt.log_wandb else None
+    # save_dir = str(increment_path(Path(opt.save_dir), exist_ok=False))  # increment run
 
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
@@ -59,9 +61,10 @@ def attack_lfw(opt):
     embeddeds = np.array([embeddeds_dict[path] for path in path_list])
     embeddeds = sklearn.preprocessing.normalize(embeddeds)
 
-    tpr, fpr, accuracy, val, val_std, far, fp, fn = evaluate_lfw(embeddeds, issame_list,
+    tpr, fpr, accuracy, val, val_std, far, fp, fn, threshold = evaluate_lfw(embeddeds, issame_list,
                                                                 distance_metric=opt.distance_metric,
                                                                 subtract_mean=opt.subtract_mean)
+
     print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
     
@@ -69,8 +72,46 @@ def attack_lfw(opt):
     print('Area Under Curve (AUC): %1.3f' % auc)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     print('Equal Error Rate (EER): %1.3f' % eer)
-    print('False positive', fp)
-    print('False negative', fn)
+    print('Thresh hold', threshold)
+    print('False positive', np.sum(fp)/len(fp))
+    print('False negative', np.sum(fn)/len(fn))
+
+    if logger:
+        logger.log({'Accuracy mean': np.mean(accuracy)})
+        logger.log({'Accuracy std': np.std(accuracy)})
+        logger.log({'Validation rate': val})
+        logger.log({'Validation rate std': val_std})
+        logger.log({'FAR': far})
+        logger.log({'AUC': auc})
+        logger.log({'eer': eer})
+        logger.log({'threshold': threshold})
+
+        data = [x for x in zip(fpr, tpr)]
+        table = logger.wandb.Table(columns=["fpr", "tpr"], data=data)
+        roc = logger.wandb.plot_table(
+            "wandb/area-under-curve/v0",
+            table,
+            {"x": "fpr", "y": "tpr"},
+            {
+                "title": "ROC",
+                "x-axis-title": "False positive rate",
+                "y-axis-title": "True positive rate",
+            },
+        )
+
+        logger.log({'roc': roc})
+
+        link1, link2 = [], []
+        for idx, link in enumerate(path_list):
+            if idx % 2 == 0:
+                link1.append(link)
+            else:
+                link2.append(link)
+        data = [(l1, l2, p, n) for l1, l2, p, n in zip(link1, link2, fp, fn)]
+        table = logger.wandb.Table(columns=["link1", "link2", "fp", "fn"], data=data)
+        logger.log({"fp and fn": table})
+
+        logger.finish_run()
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='validate_lfw.py')
