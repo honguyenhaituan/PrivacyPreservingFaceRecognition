@@ -29,7 +29,8 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 @torch.no_grad()
 def attack_lfw(opt):
-    logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw-evaluate", None, opt) if opt.log_wandb else None
+    name = opt.detector + " " + opt.extractor + " " + opt.data
+    logger = WandbLogger("PrivacyPreservingFaceRecognition-lfw-evaluate", name, opt) if opt.log_wandb else None
     # save_dir = str(increment_path(Path(opt.save_dir), exist_ok=False))  # increment run
 
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
