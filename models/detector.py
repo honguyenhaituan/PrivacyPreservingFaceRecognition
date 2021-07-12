@@ -43,9 +43,9 @@ class MTCNNDetector(Detector):
         for boxes, points, probs, img in zip(all_boxes, all_points, all_probs, imgs):
             
             if boxes is None:
-                selected_boxes.append(None)
-                selected_probs.append([None])
-                selected_points.append(None)
+                selected_boxes.append(np.array([]))
+                selected_probs.append(np.array([]))
+                selected_points.append(np.array([]))
                 continue
             
             box_sizes = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
@@ -84,7 +84,11 @@ class MTCNNDetector(Detector):
 
         boxes, lands = [], []
         for box, land in zip(batch_boxes, batch_points):
-            boxes.append(torch.from_numpy(box.astype(int)))
+            if len(box) != 0:
+                boxes.append(torch.from_numpy(box.astype(int)))
+            else:
+                boxes.append(torch.from_numpy(box))
+
             lands.append(torch.from_numpy(land))
 
         return boxes, lands
