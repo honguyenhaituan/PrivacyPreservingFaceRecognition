@@ -61,7 +61,7 @@ def attack_lfw(opt):
     embeddeds = np.array([embeddeds_dict[path] for path in path_list])
     embeddeds = sklearn.preprocessing.normalize(embeddeds)
 
-    tpr, fpr, accuracy, val, val_std, far, fp, fn, threshold = evaluate_lfw(embeddeds, issame_list,
+    tpr, fpr, accuracy, val, val_std, far, fp, fn, threshold, predict = evaluate_lfw(embeddeds, issame_list,
                                                                 distance_metric=opt.distance_metric,
                                                                 subtract_mean=opt.subtract_mean)
 
@@ -110,6 +110,10 @@ def attack_lfw(opt):
         data = [(l1, l2, p, n) for l1, l2, p, n in zip(link1, link2, fp, fn)]
         table = logger.wandb.Table(columns=["link1", "link2", "fp", "fn"], data=data)
         logger.log({"fp and fn": table})
+
+        logger.log({"conf_mat" : logger.wandb.plot.confusion_matrix(probs=None,
+                        y_true=issame_list, preds=predict,
+                        class_names=["different person", "same person"])})
 
         logger.finish_run()
         

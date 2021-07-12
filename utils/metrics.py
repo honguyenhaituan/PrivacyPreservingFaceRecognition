@@ -76,7 +76,8 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
         is_false_positive.extend(is_fp)
         is_false_negative.extend(is_fn)
 
-    return tpr, fpr, accuracy, is_false_positive, is_false_negative, thresholds[best_threshold_index]
+    predict_issame = np.less(dist, thresholds[best_threshold_index])
+    return tpr, fpr, accuracy, is_false_positive, is_false_negative, thresholds[best_threshold_index], predict_issame
 
 def calculate_accuracy(threshold, dist, actual_issame):
     predict_issame = np.less(dist, threshold)
@@ -146,9 +147,9 @@ def evaluate_lfw(embeddings, actual_issame, nrof_folds=10, distance_metric=0, su
     thresholds = np.arange(0, 4, 0.001)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
-    tpr, fpr, accuracy, fp, fn, threshold  = calculate_roc(thresholds, embeddings1, embeddings2,
+    tpr, fpr, accuracy, fp, fn, threshold, predict  = calculate_roc(thresholds, embeddings1, embeddings2,
         np.asarray(actual_issame), nrof_folds=nrof_folds, distance_metric=distance_metric, subtract_mean=subtract_mean)
     thresholds = np.arange(0, 4, 0.001)
     val, val_std, far = calculate_val(thresholds, embeddings1, embeddings2,
         np.asarray(actual_issame), 1e-3, nrof_folds=nrof_folds, distance_metric=distance_metric, subtract_mean=subtract_mean)
-    return tpr, fpr, accuracy, val, val_std, far, fp, fn, threshold
+    return tpr, fpr, accuracy, val, val_std, far, fp, fn, threshold, predict
