@@ -1,5 +1,5 @@
 from pathlib import Path
-from utils.general import colorstr
+from .general import colorstr
 
 
 try:

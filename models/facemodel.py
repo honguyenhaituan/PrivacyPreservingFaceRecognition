@@ -1,4 +1,4 @@
-from models.extractor import Extractor
+from .extractor import Extractor
 import torch
 import numpy as np
 import torch.nn as nn

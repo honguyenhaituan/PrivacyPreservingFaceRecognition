@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from models.retinaface.layers.modules.multibox_loss import MultiBoxLoss
-from models.retinaface.layers.functions.prior_box import PriorBox
+from ..models.retinaface.layers.modules.multibox_loss import MultiBoxLoss
+from ..models.retinaface.layers.functions.prior_box import PriorBox
 
 class DetectionLoss(nn.Module):
     def __init__(self, cfg, image_size):

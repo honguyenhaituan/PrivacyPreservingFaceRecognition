@@ -1,14 +1,14 @@
 from os import name
-from utils.log import WandbLogger
+from ..utils.log import WandbLogger
 import torch
 import torch.nn as nn
 from torch.nn.functional import cross_entropy
 from torch.nn import MSELoss, L1Loss
 
-from utils.general import bboxes2masks, predict2target, time_synchronized, target2bboxes
-from utils.image import blur_bboxes
-from utils.metrics import psnr, cosine
-from models.facemodel import FaceRecognition, FaceVerification
+from ..utils.general import bboxes2masks, predict2target, time_synchronized, target2bboxes
+from ..utils.image import blur_bboxes
+from ..utils.metrics import psnr, cosine
+from ..models.facemodel import FaceRecognition, FaceVerification
 
 from .optim import get_optim
 from .loss import DetectionLoss
