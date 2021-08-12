@@ -227,15 +227,15 @@ class RetinaFace(nn.Module):
         out = self.forward(img)
         return self.select_boxes(out, img.shape)
         
-def retinaface_mnet(pretrained=False):
-    model = RetinaFace(cfg_mnet)
+def retinaface_mnet(pretrained=False, keep_all=False):
+    model = RetinaFace(cfg_mnet, keep_all=keep_all)
     if pretrained:
         model = load_pretrain(model, 'mnet')
 
     return model
 
-def retinaface_rnet(pretrained=False):
-    model = RetinaFace(cfg_re50)
+def retinaface_rnet(pretrained=False, keep_all=False):
+    model = RetinaFace(cfg_re50, keep_all=keep_all)
     if pretrained:
         model = load_pretrain(model, 'rnet')
 

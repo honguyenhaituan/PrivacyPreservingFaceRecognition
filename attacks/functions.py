@@ -18,7 +18,7 @@ def _attack_face(model: FaceVerification, img, bboxes_target, faces_target, mask
     att_img = img.clone()
     att_img.requires_grad = True
 
-    t_bboxes = target2bboxes(bboxes_target, img.shape[-2], img.shape[-1])
+    t_bboxes = target2bboxes(bboxes_target, img.shape[-1], img.shape[-2])
     optim = get_optim(opt, [att_img])
 
     best_loss = float('inf')
@@ -66,6 +66,9 @@ def attack_face(model, img, target, loss_detect_fn, loss_emb_fn, logger, opt, de
     
     time_preprocess = time_synchronized() - t
     logger.increase_log({"time/preprocess": time_preprocess}) if logger else None
+
+    if opt.no_attack: 
+        return blur_img
 
     t = time_synchronized()
     att_img = _attack_face(model, blur_img, bboxes_target, faces_target, mask, loss_detect_fn, loss_emb_fn, opt)

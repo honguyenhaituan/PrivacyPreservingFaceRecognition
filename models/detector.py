@@ -12,9 +12,9 @@ class Detector(nn.Module):
         pass
 
 class RetinaFaceDetector(Detector):
-    def __init__(self):
+    def __init__(self, keep_all=False):
         super(Detector, self).__init__()
-        self.retinaface = retinaface_mnet(pretrained=True)
+        self.retinaface = retinaface_mnet(pretrained=True, keep_all=keep_all)
         self.cfg = self.retinaface.cfg
 
     def forward(self, image):
@@ -28,9 +28,9 @@ class RetinaFaceDetector(Detector):
         return self.retinaface.detect(inputs)
 
 class MTCNNDetector(Detector):
-    def __init__(self, device='cpu'):
+    def __init__(self, keep_all=False, device='cpu'):
         super(Detector, self).__init__()
-        self.mtcnn = MTCNN(device=device)
+        self.mtcnn = MTCNN(keep_all=keep_all, device=device)
 
     def _transform(self, inputs):
         inputs = inputs * 255
@@ -93,10 +93,10 @@ class MTCNNDetector(Detector):
 
         return boxes, lands
 
-def get_detector(name):
+def get_detector(name, keep_all=False):
     if name == 'retinaface':
-        return RetinaFaceDetector()
+        return RetinaFaceDetector(keep_all)
     elif name == 'mtcnn':
-        return MTCNNDetector(device='cuda')
+        return MTCNNDetector(keep_all=keep_all, device='cuda')
     else:
         raise ValueError("Name detector dont support")

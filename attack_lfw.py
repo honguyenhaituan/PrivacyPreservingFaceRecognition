@@ -32,7 +32,7 @@ def attack_lfw(opt):
     dataset = ImageFolderWithPaths(opt.data, transform=transforms.ToTensor())
     dataloader = DataLoader(dataset, batch_size=opt.batch_size, num_workers=workers)
 
-    detector = get_detector('retinaface')
+    detector = get_detector('retinaface', opt.all_face)
     extractor = get_extractor(opt.extractor)
     faceverification = FaceVerification(detector, extractor).eval().to(device)
     
@@ -66,7 +66,9 @@ if __name__ == '__main__':
     parser.add_argument('--max_iter', type=int, default=25, help='Max iter loop to process attack')
     parser.add_argument('--epsilon', type=float, default=20, help='Max value per pixel change')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum gradient attack')
+    parser.add_argument('--no-attack', action='store_true', help='Dont use attack method just blur face')
 
+    parser.add_argument('--all-face', action='store_true', help='Detect all face in image.')
     parser.add_argument('--type-blur', type=int, default=2, help='Choose type blur face image(0: None, 1: gaussian, 2: pixelate)')
     parser.add_argument('--kernel-blur', type=int, default=9, help='Kernel of algorithm blur')
 
